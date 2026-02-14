@@ -11,7 +11,8 @@ export class PacMan extends Entity {
   constructor(level) {
     super(PACMAN_START.x, PACMAN_START.y);
     this.nextDir = DIR.NONE;
-    this.speed = 2 + level * 0.1;
+    // Constant speed
+    this.speed = 2.2;
     this.mouthOpen = 0;
     this.mouthDir = 1;
     this.speedBoostTimer = 0;
@@ -23,7 +24,8 @@ export class PacMan extends Entity {
     this.y = PACMAN_START.y * TILE + TILE / 2;
     this.dir = DIR.NONE;
     this.nextDir = DIR.NONE;
-    this.speed = 2 + level * 0.1;
+    // Constant speed for Pac-Man to match Ghosts
+    this.speed = 2.2; 
     this.mouthOpen = 0;
     this.mouthDir = 1;
   }
@@ -40,10 +42,12 @@ export class PacMan extends Entity {
     }
 
     // At tile center, try to change direction
+    // At tile center, try to change direction
     if (this.isAtTileCenter()) {
       const tile = this.getTile();
+      const inTunnel = tile.x < 0 || tile.x >= COLS;
 
-      if (this.nextDir !== DIR.NONE) {
+      if (this.nextDir !== DIR.NONE && !inTunnel) {
         const ntx = tile.x + this.nextDir.x;
         const nty = tile.y + this.nextDir.y;
         if (PacMan.isWalkable(ntx, nty, map)) {

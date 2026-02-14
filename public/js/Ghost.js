@@ -20,9 +20,8 @@ export class Ghost extends Entity {
     this.color = GHOST_COLORS[index];
     this.name = GHOST_NAMES[index];
     this.dir = DIR.UP;
-    // Increase base speed closer to Pac-Man's speed (was 1.0 + level * 0.08)
-    // Pac-Man starts at 2.0. Let's make ghosts 1.8 base.
-    this.speed = 1.8 + level * 0.1;
+    // Constant speed for ghosts
+    this.speed = 2.1;
     this.frightened = false;
     this.eaten = false;
     this.exited = false;
@@ -39,8 +38,8 @@ export class Ghost extends Entity {
     this.x = home.x * TILE + TILE / 2;
     this.y = home.y * TILE + TILE / 2;
     this.dir = DIR.UP;
-    // Increase base speed slightly to make them feel more responsive
-    this.speed = 2.0 + level * 0.15; // Was 1.8
+    // Constant speed for ghosts, difficulty comes from map complexity
+    this.speed = 2.1; 
     this.frightened = false;
     this.eaten = false;
     this.exited = false;
