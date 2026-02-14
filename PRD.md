@@ -8,7 +8,7 @@ Este documento define os requisitos funcionais e técnicos para o desenvolviment
 
 *   **Experiência Visual**: Oferecer um jogo com estética moderna e agradável, utilizando Canvas HTML5.
 *   **Progressão**: Implementar um sistema de 6 fases com dificuldade crescente.
-*   **Competitividade**: Ranking global com persistência híbrida (API/SQLite preferencial, LocalStorage como fallback).
+*   **Competitividade**: Ranking global persistente em MongoDB, com atualização automática de recordes por usuário único.
 *   **Mecânicas Únicas**: Introduzir poderes específicos através de cerejas e passagens secretas estratégicas.
 
 ## 3. Mecânicas de Jogo (Gameplay)
@@ -64,7 +64,7 @@ Ao completar a Fase 6, o jogador vence o jogo e registra sua pontuação "Zerou 
 ### 5.1. Backend (Node.js)
 
 *   **Servidor**: Implementação em Node.js puro (sem frameworks pesados como Express para manter leveza, conforme `server.js` atual).
-*   **Banco de Dados**: `better-sqlite3` utilizando o arquivo `rankings.db`.
+*   **Banco de Dados**: MongoDB (Banco: `pacman`, Coleção: `ranking`).
 *   **API Endpoints**:
     *   `GET /api/rankings`: Retorna o Top 10 pontuações (JSON).
     *   `POST /api/rankings`: Recebe `{ name, score, level }` para salvar nova pontuação. Validação de dados obrigatória.

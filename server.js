@@ -1,32 +1,27 @@
-/**
- * PAC-MAN Game Server
- * Uses better-sqlite3 for rankings
- */
-
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const Database = require('better-sqlite3');
+const { MongoClient } = require('mongodb');
 
 const PORT = 3000;
 const ROOT_DIR = __dirname;
 const PUBLIC_DIR = path.join(__dirname, 'public');
-const DB_FILE = path.join(__dirname, 'rankings.db');
 
-// Initialize Database
-const db = new Database(DB_FILE);
+// MongoDB Configuration
+const MONGODB_URI = process.env.MONGODB_URI;
+let dbClient;
 
-// Create table if not exists
-function initDb() {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS rankings (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      score INTEGER NOT NULL,
-      level INTEGER NOT NULL,
-      date TEXT NOT NULL
-    )
-  `);
+async function getDb() {
+  if (!dbClient) {
+    if (!MONGODB_URI) {
+      console.error('❌ MONGODB_URI não encontrado. Por favor, defina a variável de ambiente.');
+      process.exit(1);
+    }
+    dbClient = new MongoClient(MONGODB_URI);
+    await dbClient.connect();
+    console.log('🔌 Conectado ao MongoDB');
+  }
+  return dbClient.db('pacman').collection('ranking');
 }
 
 // MIME types for static file serving
@@ -58,16 +53,12 @@ function serveStatic(req, res) {
   if (req.url === '/' || req.url === '/index.html') {
     filePath = path.join(ROOT_DIR, 'index.html');
   } else {
-    // Try to find the file in public/ first, then root (for node_modules or other root files if needed)
-    // But primarily we want to serve from public for assets
     filePath = path.join(PUBLIC_DIR, req.url);
     if (!fs.existsSync(filePath)) {
         filePath = path.join(ROOT_DIR, req.url);
     }
   }
 
-  // Security: prevent directory traversal
-  // Allow access if it's within ROOT_DIR, basically.
   if (!filePath.startsWith(ROOT_DIR)) {
     res.writeHead(403);
     res.end('Forbidden');
@@ -91,14 +82,13 @@ function serveStatic(req, res) {
 // SSE Clients for Hot Reload
 let clients = [];
 
-// Watch public directory for changes
 fs.watch(PUBLIC_DIR, { recursive: true }, (eventType, filename) => {
-  console.log(`🔄 File changed: ${filename}`);
+  console.log(`🔄 Arquivo alterado: ${filename}`);
   clients.forEach(client => client.res.write(`data: reload\n\n`));
 });
 
 // Create HTTP server
-const server = http.createServer((req, res) => {
+const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
 
   // CORS preflight
@@ -134,8 +124,12 @@ const server = http.createServer((req, res) => {
   // API: GET rankings
   if (req.method === 'GET' && url.pathname === '/api/rankings') {
     try {
-      const stmt = db.prepare('SELECT * FROM rankings ORDER BY score DESC LIMIT 10');
-      const rankings = stmt.all();
+      const collection = await getDb();
+      const rankings = await collection
+        .find({})
+        .sort({ score: -1 })
+        .limit(10)
+        .toArray();
       sendJSON(res, 200, rankings);
     } catch (e) {
       sendJSON(res, 500, { error: e.message });
@@ -147,7 +141,7 @@ const server = http.createServer((req, res) => {
   if (req.method === 'POST' && url.pathname === '/api/rankings') {
     let body = '';
     req.on('data', chunk => (body += chunk));
-    req.on('end', () => {
+    req.on('end', async () => {
       try {
         const data = JSON.parse(body);
         if (!data.name || data.score == null || data.level == null) {
@@ -155,16 +149,17 @@ const server = http.createServer((req, res) => {
           return;
         }
 
-        const stmt = db.prepare(`
-          INSERT INTO rankings (name, score, level, date)
-          VALUES (?, ?, ?, ?)
-        `);
-        
-        stmt.run(
-          data.name.trim(),
-          Number(data.score),
-          Number(data.level),
-          new Date().toISOString()
+        const collection = await getDb();
+        const normalizedName = data.name.trim().toUpperCase();
+
+        await collection.updateOne(
+          { name: normalizedName },
+          {
+            $max: { score: Number(data.score), level: Number(data.level) },
+            $set: { date: new Date().toISOString() },
+            $setOnInsert: { name: normalizedName }
+          },
+          { upsert: true }
         );
 
         sendJSON(res, 200, { success: true });
@@ -180,12 +175,9 @@ const server = http.createServer((req, res) => {
 });
 
 // Start server
-initDb();
 server.listen(PORT, () => {
-  console.log(`🎮 PAC-MAN server running at http://localhost:${PORT}`);
-  console.log(`🗄️ Database: ${DB_FILE}`);
-  console.log(`📂 Static files: ${PUBLIC_DIR}`);
-  console.log(`🔥 Hot Reload: Active for public folder`);
-  console.log('Press Ctrl+C to stop.');
+  console.log(`🎮 Servidor PAC-MAN rodando em http://localhost:${PORT}`);
+  console.log(`📂 Arquivos estáticos: ${PUBLIC_DIR}`);
+  console.log(`🔥 Hot Reload: Ativo para a pasta public`);
 });
 

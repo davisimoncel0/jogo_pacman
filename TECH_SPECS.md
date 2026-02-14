@@ -8,7 +8,7 @@ Este projeto é uma implementação do clássico jogo Pac-Man utilizando tecnolo
 ### Backend
 *   **Runtime**: Node.js
 *   **Framework Web**: Nenhum (Módulo nativo `http`).
-*   **Banco de Dados**: SQLite (`better-sqlite3`) para persistência primária, com fallback para LocalStorage no frontend.
+*   **Banco de Dados**: MongoDB (Persistência global via Atlas ou local).
 *   **Gerenciamento de Pacotes**: npm (`package.json`).
 
 ### Frontend
@@ -48,19 +48,17 @@ Este projeto é uma implementação do clássico jogo Pac-Man utilizando tecnolo
 *   **Endpoints API**:
     *   `GET /api/rankings`: Retorna as top 10 pontuações em formato JSON.
     *   `POST /api/rankings`: Recebe `{ name, score, level }` e salva no banco de dados. Valida dados de entrada.
-*   **Banco de Dados**:
-    *   Persistência Híbrida: API SQLite (Primário) + LocalStorage (Secundário/Fallback).
-    *   Arquivo: `rankings.db`
-    *   Tabela principal: `rankings`
-    *   Schema:
-        ```sql
-        CREATE TABLE IF NOT EXISTS rankings (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          name TEXT NOT NULL,
-          score INTEGER NOT NULL,
-          level INTEGER NOT NULL,
-          date TEXT NOT NULL
-        );
+    *   Database: `pacman`
+    *   Collection: `ranking`
+    *   Lógica de Upsert: Os usuários são identificados pelo nome (em CAIXA ALTA). Se o novo Score for maior que o existente, o registro é atualizado (`$max`).
+    *   Schema (Documento):
+        ```json
+        {
+          "name": "NOME",
+          "score": 1000,
+          "level": 3,
+          "date": "2024-..."
+        }
         ```
 
 ### 3.3. Frontend (`public/js/`)
