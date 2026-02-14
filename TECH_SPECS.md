@@ -8,7 +8,7 @@ Este projeto é uma implementação do clássico jogo Pac-Man utilizando tecnolo
 ### Backend
 *   **Runtime**: Node.js
 *   **Framework Web**: Nenhum (Módulo nativo `http`).
-*   **Banco de Dados**: SQLite (`better-sqlite3`).
+*   **Banco de Dados**: SQLite (`better-sqlite3`) para persistência primária, com fallback para LocalStorage no frontend.
 *   **Gerenciamento de Pacotes**: npm (`package.json`).
 
 ### Frontend
@@ -40,7 +40,7 @@ Este projeto é uma implementação do clássico jogo Pac-Man utilizando tecnolo
 │       ├── Ghost.js        # IA e comportamento dos fantasmas
 │       ├── Entity.js       # Classe base para entidades móveis
 │       ├── levels.js       # Configuração dos labirintos (matrizes/grafos)
-│       └── RankingService.js # Comunicação com a API de rankings
+│       └── RankingService.js # Comunicação com a API de rankings (com fallback para LocalStorage)
 ```
 
 ### 3.2. Backend (`server.js`)
@@ -49,6 +49,7 @@ Este projeto é uma implementação do clássico jogo Pac-Man utilizando tecnolo
     *   `GET /api/rankings`: Retorna as top 10 pontuações em formato JSON.
     *   `POST /api/rankings`: Recebe `{ name, score, level }` e salva no banco de dados. Valida dados de entrada.
 *   **Banco de Dados**:
+    *   Persistência Híbrida: API SQLite (Primário) + LocalStorage (Secundário/Fallback).
     *   Arquivo: `rankings.db`
     *   Tabela principal: `rankings`
     *   Schema:

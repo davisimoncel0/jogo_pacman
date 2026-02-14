@@ -8,7 +8,7 @@ Este documento define os requisitos funcionais e técnicos para o desenvolviment
 
 *   **Experiência Visual**: Oferecer um jogo com estética moderna e agradável, utilizando Canvas HTML5.
 *   **Progressão**: Implementar um sistema de 6 fases com dificuldade crescente.
-*   **Competitividade**: Manter um ranking global persistente em banco de dados SQLite (`rankings.db`).
+*   **Competitividade**: Ranking global com persistência híbrida (API/SQLite preferencial, LocalStorage como fallback).
 *   **Mecânicas Únicas**: Introduzir poderes específicos através de cerejas e passagens secretas estratégicas.
 
 ## 3. Mecânicas de Jogo (Gameplay)
