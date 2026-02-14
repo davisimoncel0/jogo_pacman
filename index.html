@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="PAC-MAN - Jogo clássico com 6 fases, sistema de pontuação e ranking"
+    />
+    <title>🎮 PAC-MAN — 6 Fases</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&family=Press+Start+2P&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/public/css/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- START SCREEN -->
+      <div id="start-screen" class="screen active">
+        <div class="logo-container">
+          <h1 class="game-logo">PAC<span class="dot">·</span>MAN</h1>
+          <p class="subtitle">6 FASES · RANKING · PRÊMIOS</p>
+        </div>
+        <div class="start-actions">
+          <input
+            type="text"
+            id="player-name"
+            placeholder="Digite seu nome..."
+            maxlength="20"
+            autocomplete="off"
+          />
+          <button id="btn-start" class="btn btn-primary" disabled>
+            <span>▶</span> JOGAR
+          </button>
+          <button id="btn-ranking" class="btn btn-secondary">
+            <span>🏆</span> RANKING
+          </button>
+        </div>
+        <div class="ghost-parade">
+          <div class="ghost ghost-red"></div>
+          <div class="ghost ghost-pink"></div>
+          <div class="ghost ghost-cyan"></div>
+          <div class="ghost ghost-orange"></div>
+        </div>
+      </div>
+
+      <!-- GAME SCREEN -->
+      <div id="game-screen" class="screen">
+        <div class="hud">
+          <div class="hud-item">
+            <span class="hud-label">PONTOS</span>
+            <span class="hud-value" id="hud-score">0</span>
+          </div>
+          <div class="hud-item">
+            <span class="hud-label">FASE</span>
+            <span class="hud-value" id="hud-level">1</span>
+          </div>
+          <div class="hud-item">
+            <span class="hud-label">VIDAS</span>
+            <span class="hud-value" id="hud-lives">❤️❤️❤️</span>
+          </div>
+        </div>
+        <canvas id="game-canvas"></canvas>
+        <div id="level-banner" class="level-banner hidden">
+          <span id="level-banner-text">FASE 1</span>
+        </div>
+        <div id="game-message" class="game-message hidden"></div>
+      </div>
+
+      <!-- PRIZE SCREEN -->
+      <div id="prize-screen" class="screen">
+        <div class="prize-container">
+          <div class="trophy">🏆</div>
+          <h2>PARABÉNS!</h2>
+          <p class="prize-subtitle">Você completou todas as 6 fases!</p>
+          <div class="final-score">
+            <span class="label">Pontuação Final</span>
+            <span class="value" id="final-score-value">0</span>
+          </div>
+          <div class="prize-box">
+            <span class="prize-icon">🎁</span>
+            <p>Você ganhou o título de</p>
+            <h3 id="prize-title">MESTRE DO PAC-MAN</h3>
+          </div>
+          <button id="btn-save-score" class="btn btn-primary">
+            <span>💾</span> SALVAR NO RANKING
+          </button>
+          <button id="btn-play-again" class="btn btn-secondary">
+            <span>🔄</span> JOGAR NOVAMENTE
+          </button>
+        </div>
+      </div>
+
+      <!-- GAME OVER SCREEN -->
+      <div id="gameover-screen" class="screen">
+        <div class="gameover-container">
+          <h2 class="gameover-title">GAME OVER</h2>
+          <div class="final-score">
+            <span class="label">Pontuação</span>
+            <span class="value" id="gameover-score-value">0</span>
+          </div>
+          <p class="gameover-level">
+            Você chegou até a Fase <span id="gameover-level-value">1</span>
+          </p>
+          <button id="btn-save-gameover" class="btn btn-primary">
+            <span>💾</span> SALVAR NO RANKING
+          </button>
+          <button id="btn-retry" class="btn btn-secondary">
+            <span>🔄</span> TENTAR NOVAMENTE
+          </button>
+        </div>
+      </div>
+
+      <!-- RANKING MODAL -->
+      <div id="ranking-modal" class="modal hidden">
+        <div class="modal-content">
+          <button id="btn-close-ranking" class="modal-close">✕</button>
+          <h2>🏆 RANKING</h2>
+          <div id="ranking-list" class="ranking-list">
+            <p class="loading">Carregando...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/public/js/main.js"></script>
+  </body>
+</html>

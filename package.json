@@ -1,0 +1,14 @@
+{
+  "name": "jogo-pacman",
+  "version": "1.0.0",
+  "description": "PAC-MAN — Jogo clássico com 6 fases, ranking e prêmios. Zero dependências externas.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "reset-db": "node -e \"require('fs').writeFileSync('ranking.json', '[]'); console.log('Ranking resetado!')\""
+  },
+  "keywords": ["pacman", "game", "javascript", "canvas"],
+  "author": "",
+  "license": "ISC"
+}
