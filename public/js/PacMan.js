@@ -36,12 +36,18 @@ export class PacMan extends Entity {
    * @param {number[][]} map - Current level map
    * @returns {{ scoreDelta: number, dotsEaten: number, powerEaten: boolean }}
    */
+  move(dt, map) {
+    // Check if stopped
+    if (this.dir === DIR.NONE && this.nextDir === DIR.NONE) {
+      return { scoreDelta: 0, dotsEaten: 0, powerEaten: false };
+    }
+
     // Speed with boost
     let currentSpeed = this.speed;
     if (this.speedBoostTimer > 0) currentSpeed *= 1.5;
     const speed = currentSpeed * dt * 60;
 
-    // Calculate move distance
+    // Calculate move distance based on current direction
     const moveX = this.dir.x * speed;
     const moveY = this.dir.y * speed;
 
@@ -52,20 +58,23 @@ export class PacMan extends Entity {
 
     // Check if we overshoot the center in this frame
     let passedCenter = false;
+    
+    // Only check overshoots if we are actually moving in a direction
     if (this.dir.x > 0 && this.x < centerX && (this.x + moveX) >= centerX) passedCenter = true;
     else if (this.dir.x < 0 && this.x > centerX && (this.x + moveX) <= centerX) passedCenter = true;
     else if (this.dir.y > 0 && this.y < centerY && (this.y + moveY) >= centerY) passedCenter = true;
     else if (this.dir.y < 0 && this.y > centerY && (this.y + moveY) <= centerY) passedCenter = true;
 
     // Also consider cases where we are practically AT the center (within minimal tolerance)
-    // but not moving enough to "cross" it (e.g. starting move from center)
     if (!passedCenter && this.isAtTileCenter()) {
-       // Force a re-evaluation if we are perfectly aligned, to allow immediate turns
        passedCenter = true; 
     }
 
     if (passedCenter) {
-      // Snap to center first
+      // Snap to center first to execute precise turn
+      const oldX = this.x;
+      const oldY = this.y;
+      
       this.x = centerX;
       this.y = centerY;
 
@@ -78,7 +87,7 @@ export class PacMan extends Entity {
         const nty = tile.y + this.nextDir.y;
         if (PacMan.isWalkable(ntx, nty, map)) {
           this.dir = this.nextDir;
-          this.nextDir = DIR.NONE; // Consumed
+          this.nextDir = DIR.NONE; // Direction consumed
           turned = true;
         }
       }
@@ -93,10 +102,11 @@ export class PacMan extends Entity {
         }
       }
       
-      // If we still have a direction, apply the rest of the movement? 
-      // For simplicity and to avoid bugs, we just move from the center starting next frame
-      // or we can add a small nudge. Let's just snap for this frame to ensure safety.
+      // If we still have a valid direction after checks, we could theoretically apply 
+      // the "remaining" movement, but for PacMan grid precision, stopping at center 
+      // for this frame is safer and barely noticeable at 60fps.
     } else {
+      // Not at center, just apply movement
       this.x += moveX;
       this.y += moveY;
     }
@@ -108,20 +118,21 @@ export class PacMan extends Entity {
     if (this.mouthOpen > 1) { this.mouthOpen = 1; this.mouthDir = -1; }
     if (this.mouthOpen < 0) { this.mouthOpen = 0; this.mouthDir = 1; }
 
-    // Collect items
+    // Collect items logic
     let scoreDelta = 0;
     let dotsEaten = 0;
     let powerEaten = false;
 
-    const tile = this.getTile();
-    if (tile.x >= 0 && tile.x < COLS && tile.y >= 0 && tile.y < ROWS) {
-      const cell = map[tile.y][tile.x];
+    // Re-calculate tile after movement
+    const newTile = this.getTile();
+    if (newTile.x >= 0 && newTile.x < COLS && newTile.y >= 0 && newTile.y < ROWS) {
+      const cell = map[newTile.y][newTile.x];
       if (cell === DOT) {
-        map[tile.y][tile.x] = EMPTY;
+        map[newTile.y][newTile.x] = EMPTY;
         scoreDelta += SCORE_CHERRY;
         dotsEaten++;
       } else if (cell === POWER) {
-        map[tile.y][tile.x] = EMPTY;
+        map[newTile.y][newTile.x] = EMPTY;
         scoreDelta += SCORE_POWER;
         dotsEaten++;
         powerEaten = true;

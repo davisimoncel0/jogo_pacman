@@ -4,8 +4,8 @@
   "description": "PAC-MAN — Jogo clássico com 6 fases, ranking e prêmios. Zero dependências externas.",
   "main": "server.js",
   "scripts": {
-    "start": "node utils/kill-port.js && node server.js",
-    "dev": "node utils/kill-port.js && node server.js",
+    "start": "node utils/kill-port.js && node --watch server.js",
+    "dev": "node utils/kill-port.js && node --watch server.js",
     "reset-db": "node -e \"const fs = require('fs'); if (fs.existsSync('rankings.db')) { fs.unlinkSync('rankings.db'); console.log('Banco de dados resetado!'); } else { console.log('Banco de dados não encontrado.'); }\"",
     "kill-port": "node utils/kill-port.js"
   },
