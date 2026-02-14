@@ -1,0 +1,13 @@
+# Regras do Projeto Pac-Man
+
+As regras detalhadas e especificações de contexto para este projeto foram movidas para o diretório `.agent/rules`.
+
+Por favor, consulte o arquivo principal de regras em:
+`.agent/rules/project_context.md`
+
+Este arquivo contém:
+1.  Referências obrigatórias ao `PRD.md` e `TECH_SPECS.md`.
+2.  Padrões de desenvolvimento (Backend/Frontend).
+3.  Fluxo de trabalho recomendado.
+
+Certifique-se de carregar e seguir estas diretrizes antes de realizar qualquer alteração no código.

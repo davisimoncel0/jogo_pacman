@@ -172,9 +172,12 @@ export class GameEngine {
     this.frightenedTimer = FRIGHTENED_DURATION;
     this.pacman.speedBoostTimer = SPEED_BOOST_DURATION;
     this.ghosts.forEach(g => {
-      if (g.exited && !g.eaten) {
+      if (!g.eaten) {
         g.frightened = true;
-        g.dir = { x: -g.dir.x, y: -g.dir.y };
+        // Only reverse direction if outside, otherwise they might get stuck in the house logic
+        if (g.exited) {
+          g.dir = { x: -g.dir.x, y: -g.dir.y };
+        }
       }
     });
   }
