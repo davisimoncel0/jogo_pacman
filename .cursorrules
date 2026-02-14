@@ -3,7 +3,8 @@
 As regras detalhadas e especificações de contexto para este projeto foram movidas para o diretório `.agent/rules`.
 
 Por favor, consulte o arquivo principal de regras em:
-`.agent/rules/project_context.md`
+`.agent/rules/contexto-projeto.md
+`
 
 Este arquivo contém:
 1.  Referências obrigatórias ao `PRD.md` e `TECH_SPECS.md`.

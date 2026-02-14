@@ -6,8 +6,8 @@ description: Este workflow e um passo-a-passo para corrigir erros ou realizar me
 
 ## Entendimento
 
-1. Veja a rule project_context.md
-2. Veja a rule linguage.md para garantir que TODA a comunicação (respostas, commits, docs) seja em Português do Brasil.
+1. Veja a rule contexto-projeto.md
+2. Veja a rule linguagem.md para garantir que TODA a comunicação (respostas, commits, docs) seja em Português do Brasil.
 3. Veja as especificacoes tecnicas no TECH_SPECS.md quando necessario
 4. Veja as especificacoes do produto no PRD.md quando necessario
 
