@@ -1,16 +1,33 @@
 /**
- * PAC-MAN Game Server — Zero Dependencies
- * Uses only Node.js built-in modules: http, fs, path
- * Rankings stored in ranking.json
+ * PAC-MAN Game Server
+ * Uses better-sqlite3 for rankings
  */
 
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const Database = require('better-sqlite3');
 
 const PORT = 3000;
+const ROOT_DIR = __dirname;
 const PUBLIC_DIR = path.join(__dirname, 'public');
-const RANKING_FILE = path.join(__dirname, 'ranking.json');
+const DB_FILE = path.join(__dirname, 'rankings.db');
+
+// Initialize Database
+const db = new Database(DB_FILE);
+
+// Create table if not exists
+function initDb() {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS rankings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      score INTEGER NOT NULL,
+      level INTEGER NOT NULL,
+      date TEXT NOT NULL
+    )
+  `);
+}
 
 // MIME types for static file serving
 const MIME_TYPES = {
@@ -25,28 +42,6 @@ const MIME_TYPES = {
   '.ico': 'image/x-icon',
 };
 
-// Initialize ranking file if it doesn't exist
-function initRankings() {
-  if (!fs.existsSync(RANKING_FILE)) {
-    fs.writeFileSync(RANKING_FILE, JSON.stringify([], null, 2), 'utf-8');
-  }
-}
-
-// Read rankings from file
-function getRankings() {
-  try {
-    const data = fs.readFileSync(RANKING_FILE, 'utf-8');
-    return JSON.parse(data);
-  } catch {
-    return [];
-  }
-}
-
-// Save rankings to file
-function saveRankings(rankings) {
-  fs.writeFileSync(RANKING_FILE, JSON.stringify(rankings, null, 2), 'utf-8');
-}
-
 // Send a JSON response
 function sendJSON(res, statusCode, data) {
   const body = JSON.stringify(data, null, 2);
@@ -57,13 +52,23 @@ function sendJSON(res, statusCode, data) {
   res.end(body);
 }
 
-// Serve static files from public/
+// Serve static files
 function serveStatic(req, res) {
-  let filePath = path.join(PUBLIC_DIR, req.url === '/' ? 'index.html' : req.url);
-  filePath = decodeURIComponent(filePath);
+  let filePath;
+  if (req.url === '/' || req.url === '/index.html') {
+    filePath = path.join(ROOT_DIR, 'index.html');
+  } else {
+    // Try to find the file in public/ first, then root (for node_modules or other root files if needed)
+    // But primarily we want to serve from public for assets
+    filePath = path.join(PUBLIC_DIR, req.url);
+    if (!fs.existsSync(filePath)) {
+        filePath = path.join(ROOT_DIR, req.url);
+    }
+  }
 
   // Security: prevent directory traversal
-  if (!filePath.startsWith(PUBLIC_DIR)) {
+  // Allow access if it's within ROOT_DIR, basically.
+  if (!filePath.startsWith(ROOT_DIR)) {
     res.writeHead(403);
     res.end('Forbidden');
     return;
@@ -83,6 +88,15 @@ function serveStatic(req, res) {
   });
 }
 
+// SSE Clients for Hot Reload
+let clients = [];
+
+// Watch public directory for changes
+fs.watch(PUBLIC_DIR, { recursive: true }, (eventType, filename) => {
+  console.log(`🔄 File changed: ${filename}`);
+  clients.forEach(client => client.res.write(`data: reload\n\n`));
+});
+
 // Create HTTP server
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
@@ -98,11 +112,34 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // API: Hot Reload (SSE)
+  if (req.method === 'GET' && url.pathname === '/reload') {
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    });
+    res.write('\n');
+    
+    const clientId = Date.now();
+    const newClient = { id: clientId, res };
+    clients.push(newClient);
+
+    req.on('close', () => {
+      clients = clients.filter(c => c.id !== clientId);
+    });
+    return;
+  }
+
   // API: GET rankings
   if (req.method === 'GET' && url.pathname === '/api/rankings') {
-    const rankings = getRankings();
-    const top10 = rankings.sort((a, b) => b.score - a.score).slice(0, 10);
-    sendJSON(res, 200, top10);
+    try {
+      const stmt = db.prepare('SELECT * FROM rankings ORDER BY score DESC LIMIT 10');
+      const rankings = stmt.all();
+      sendJSON(res, 200, rankings);
+    } catch (e) {
+      sendJSON(res, 500, { error: e.message });
+    }
     return;
   }
 
@@ -117,15 +154,19 @@ const server = http.createServer((req, res) => {
           sendJSON(res, 400, { error: 'name, score, and level are required' });
           return;
         }
-        const rankings = getRankings();
-        rankings.push({
-          id: Date.now(),
-          name: data.name.trim(),
-          score: Number(data.score),
-          level: Number(data.level),
-          date: new Date().toISOString(),
-        });
-        saveRankings(rankings);
+
+        const stmt = db.prepare(`
+          INSERT INTO rankings (name, score, level, date)
+          VALUES (?, ?, ?, ?)
+        `);
+        
+        stmt.run(
+          data.name.trim(),
+          Number(data.score),
+          Number(data.level),
+          new Date().toISOString()
+        );
+
         sendJSON(res, 200, { success: true });
       } catch (e) {
         sendJSON(res, 500, { error: e.message });
@@ -139,10 +180,12 @@ const server = http.createServer((req, res) => {
 });
 
 // Start server
-initRankings();
+initDb();
 server.listen(PORT, () => {
   console.log(`🎮 PAC-MAN server running at http://localhost:${PORT}`);
-  console.log(`📁 Rankings: ${RANKING_FILE}`);
+  console.log(`🗄️ Database: ${DB_FILE}`);
   console.log(`📂 Static files: ${PUBLIC_DIR}`);
+  console.log(`🔥 Hot Reload: Active for public folder`);
   console.log('Press Ctrl+C to stop.');
 });
+

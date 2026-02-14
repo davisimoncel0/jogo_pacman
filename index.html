@@ -125,5 +125,15 @@
     </div>
 
     <script type="module" src="/public/js/main.js"></script>
+    <script>
+      // Simple Hot Reload Client
+      const evtSource = new EventSource('/reload');
+      evtSource.onmessage = function(event) {
+        if (event.data === 'reload') {
+          console.log('🔄 Reloading...');
+          window.location.reload();
+        }
+      };
+    </script>
   </body>
 </html>
