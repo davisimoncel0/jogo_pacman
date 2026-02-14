@@ -20,7 +20,9 @@ export class Ghost extends Entity {
     this.color = GHOST_COLORS[index];
     this.name = GHOST_NAMES[index];
     this.dir = DIR.UP;
-    this.speed = 1.0 + level * 0.08;
+    // Increase base speed closer to Pac-Man's speed (was 1.0 + level * 0.08)
+    // Pac-Man starts at 2.0. Let's make ghosts 1.8 base.
+    this.speed = 1.8 + level * 0.1;
     this.frightened = false;
     this.eaten = false;
     this.exited = false;
@@ -28,8 +30,8 @@ export class Ghost extends Entity {
     this.exitTimer = Ghost.EXIT_TIMERS[index];
   }
 
-  /** Staggered exit timers per ghost (child-friendly — long delays). */
-  static EXIT_TIMERS = [1000, 4000, 7000, 10000];
+// Staggered exit timers per ghost (increased for better cadence)
+  static EXIT_TIMERS = [0, 4000, 8000, 12000];
 
   /** Reset ghost to home position. */
   reset(level) {
@@ -37,7 +39,8 @@ export class Ghost extends Entity {
     this.x = home.x * TILE + TILE / 2;
     this.y = home.y * TILE + TILE / 2;
     this.dir = DIR.UP;
-    this.speed = 1.0 + level * 0.08;
+    // Increase base speed slightly to make them feel more responsive
+    this.speed = 2.0 + level * 0.15; // Was 1.8
     this.frightened = false;
     this.eaten = false;
     this.exited = false;
@@ -60,7 +63,7 @@ export class Ghost extends Entity {
 
     // PHASE 2: Walking out through the door
     if (this.exiting) {
-      this._walkOutDoor(dt);
+      this._walkOutDoor(dt, map, pacTile);
       return;
     }
 
@@ -91,7 +94,7 @@ export class Ghost extends Entity {
   }
 
   /** Phase 2: Walk upwards through the ghost door. */
-  _walkOutDoor(dt) {
+  _walkOutDoor(dt, map, pacTile) {
     const exitY = GHOST_EXIT_ROW * TILE + TILE / 2;
     this.dir = DIR.UP;
     this.y -= this.speed * 1.5 * dt * 60;
@@ -101,7 +104,9 @@ export class Ghost extends Entity {
       this.y = exitY;
       this.exiting = false;
       this.exited = true;
-      this.dir = this.index % 2 === 0 ? DIR.LEFT : DIR.RIGHT;
+      
+      // Immediately start chasing Pac-Man
+      this._moveInMaze(0, pacTile, map); 
     }
   }
 
@@ -116,52 +121,72 @@ export class Ghost extends Entity {
       this.frightened = false;
       this.exited = false;
       this.exiting = false;
-      this.exitTimer = 3000;
+      this.exitTimer = 3000; // Delay before re-exiting
       this.x = hx;
       this.y = hy;
       this.dir = DIR.UP;
     } else {
       const dx = hx - this.x;
       const dy = hy - this.y;
-      const returnSpeed = this.speed * 2 * dt * 60;
+      const returnSpeed = this.speed * 3 * dt * 60; // Faster return
+      // Simple direct movement
       if (Math.abs(dx) > Math.abs(dy)) {
         this.x += Math.sign(dx) * returnSpeed;
       } else {
         this.y += Math.sign(dy) * returnSpeed;
+        if (Math.abs(dx) > 1) this.x += Math.sign(dx) * returnSpeed * 0.5; // Diagonal help
       }
     }
   }
 
-  /** Phase 4: Move through the maze chasing Pac-Man (child-friendly). */
+  /** Phase 4: Move through the maze chasing Pac-Man (Aggressive AI). */
   _moveInMaze(dt, pacTile, map) {
-    const speed = (this.frightened ? this.speed * 0.4 : this.speed) * dt * 60;
+    const currentSpeed = (this.frightened ? this.speed * 0.6 : this.speed); // Slightly faster in frightened mode
+    const speed = currentSpeed * (dt > 0 ? dt : 0.016) * 60; // Handle dt=0 case from _walkOutDoor
 
     if (this.isAtTileCenter()) {
       this.snapToCenter();
       const tile = this.getTile();
 
-      // Simple child-friendly AI: chase Pac-Man with slight per-ghost offset
       let target;
       if (this.frightened) {
-        target = { x: Math.floor(Math.random() * COLS), y: Math.floor(Math.random() * ROWS) };
+        // Run AWAY from Pac-Man
+        // Target is the corner furthest from Pac-Man
+        const corners = [
+            { x: 1, y: 1 },
+            { x: COLS - 2, y: 1 },
+            { x: 1, y: ROWS - 2 },
+            { x: COLS - 2, y: ROWS - 2 }
+        ];
+        let maxDist = -1;
+        
+        for (const corner of corners) {
+            const d = (corner.x - pacTile.x) ** 2 + (corner.y - pacTile.y) ** 2;
+            if (d > maxDist) {
+                maxDist = d;
+                target = corner;
+            }
+        }
       } else {
-        target = {
-          x: pacTile.x + (this.index % 2 === 0 ? this.index - 1 : 1 - this.index),
-          y: pacTile.y + (this.index < 2 ? -2 : 2),
-        };
+        // Chase logic - Aggressive direct chase for ALL ghosts to ensure they go after Pac-Man
+        target = pacTile;
       }
 
-      // Find best direction (no reversing allowed)
+      // Find best direction (no reversing allowed usually, but simplified here)
       const opposite = { x: -this.dir.x, y: -this.dir.y };
       const directions = [DIR.UP, DIR.DOWN, DIR.LEFT, DIR.RIGHT];
       let bestDir = null;
       let bestDist = Infinity;
 
       for (const d of directions) {
+        // Prevent immediate 180 turn unless stuck
         if (d.x === opposite.x && d.y === opposite.y) continue;
+        
         const ntx = tile.x + d.x;
         const nty = tile.y + d.y;
+        
         if (!Ghost.isWalkable(ntx, nty, map, this.exited)) continue;
+        
         const dist = (ntx - target.x) ** 2 + (nty - target.y) ** 2;
         if (dist < bestDist) {
           bestDist = dist;
@@ -169,22 +194,24 @@ export class Ghost extends Entity {
         }
       }
 
-      // Fallback: try any direction including reverse
+      // Fallback: if trapped (cul-de-sac), allow reverse
       if (!bestDir) {
         for (const d of directions) {
-          if (Ghost.isWalkable(tile.x + d.x, tile.y + d.y, map, this.exited)) {
-            bestDir = d;
-            break;
-          }
+           if (Ghost.isWalkable(tile.x + d.x, tile.y + d.y, map, this.exited)) {
+             bestDir = d;
+             break;
+           }
         }
       }
 
       if (bestDir) this.dir = bestDir;
     }
 
-    this.x += this.dir.x * speed;
-    this.y += this.dir.y * speed;
-    this.tunnelWrap();
+    if (dt > 0) {
+        this.x += this.dir.x * speed;
+        this.y += this.dir.y * speed;
+        this.tunnelWrap();
+    }
   }
 
   /** Check if a tile is walkable for a ghost. */
