@@ -67,18 +67,25 @@ export class PacMan extends Entity {
 
     // Also consider cases where we are practically AT the center (within minimal tolerance)
     if (!passedCenter && this.isAtTileCenter()) {
-       passedCenter = true; 
+       // Only force center logic if we actually intend to change direction or might hit a wall
+       // Otherwise, let him pass freely to avoid getting stuck
+       const tile = this.getTile();
+       const ftx = tile.x + this.dir.x;
+       const fty = tile.y + this.dir.y;
+       
+       // If we have a nextDir pending, OR if the wall ahead is blocked, we MUST snap to center
+       if (this.nextDir !== DIR.NONE || !PacMan.isWalkable(ftx, fty, map)) {
+           passedCenter = true;
+       }
     }
 
     if (passedCenter) {
       // Snap to center first to execute precise turn
-      const oldX = this.x;
-      const oldY = this.y;
-      
       this.x = centerX;
       this.y = centerY;
 
       // Try to turn to nextDir
+      const tile = this.getTile(); // Refresh tile just in case
       const inTunnel = tile.x < 0 || tile.x >= COLS;
       let turned = false;
 
@@ -102,9 +109,13 @@ export class PacMan extends Entity {
         }
       }
       
-      // If we still have a valid direction after checks, we could theoretically apply 
-      // the "remaining" movement, but for PacMan grid precision, stopping at center 
-      // for this frame is safer and barely noticeable at 60fps.
+      // If we are still moving (either turned or continued straight), apply the remaining movement
+      // This is crucial to prevent "stuttering" or getting stuck at center
+      if (this.dir !== DIR.NONE) {
+          const remSpeed = speed; // Simplification: just apply full speed for this frame to avoid complexity
+          this.x += this.dir.x * remSpeed;
+          this.y += this.dir.y * remSpeed;
+      }
     } else {
       // Not at center, just apply movement
       this.x += moveX;
