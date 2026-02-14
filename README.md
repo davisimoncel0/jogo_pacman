@@ -48,16 +48,13 @@ O jogo estará disponível em **http://localhost:3000**
 | `npm run reset-db` | Reseta o ranking (apaga todas as pontuações) |
 | `npm run kill-port` | Derruba o processo que está ocupando a porta 3000 (Mac/Linux) |
 
-### ⚠️ Erro "Address already in use" (EADDRINUSE)
+### ⚠️ Script Cross-Platform
+O script `npm start` (e `npm run dev`) agora executa automaticamente um utilitário (`utils/kill-port.js`) que verifica e derruba qualquer processo ocupando a porta 3000 antes de subir o servidor.
+Isso funciona tanto em **Windows** quanto em **Mac/Linux**.
 
-Se ao rodar `npm start` você ver um erro dizendo que a porta 3000 já está em uso, execute:
-
+Se precisar rodar manualmente:
 ```bash
-# Opção 1: Via script do projeto (Mac/Linux)
 npm run kill-port
-
-# Opção 2: Manualmente
-lsof -ti:3000 | xargs kill -9
 ```
 
 ## 🎯 Como Jogar
