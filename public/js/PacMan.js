@@ -36,47 +36,71 @@ export class PacMan extends Entity {
    * @param {number[][]} map - Current level map
    * @returns {{ scoreDelta: number, dotsEaten: number, powerEaten: boolean }}
    */
-  move(dt, map) {
-    if (this.dir === DIR.NONE && this.nextDir === DIR.NONE) {
-      return { scoreDelta: 0, dotsEaten: 0, powerEaten: false };
-    }
-
-    // At tile center, try to change direction
-    // At tile center, try to change direction
-    if (this.isAtTileCenter()) {
-      const tile = this.getTile();
-      const inTunnel = tile.x < 0 || tile.x >= COLS;
-
-      if (this.nextDir !== DIR.NONE && !inTunnel) {
-        const ntx = tile.x + this.nextDir.x;
-        const nty = tile.y + this.nextDir.y;
-        if (PacMan.isWalkable(ntx, nty, map)) {
-          this.snapToCenter();
-          this.dir = this.nextDir;
-        }
-      }
-
-      // Check if current direction is blocked
-      const ftx = tile.x + this.dir.x;
-      const fty = tile.y + this.dir.y;
-      if (!PacMan.isWalkable(ftx, fty, map)) {
-        this.snapToCenter();
-        this.dir = DIR.NONE;
-        return { scoreDelta: 0, dotsEaten: 0, powerEaten: false };
-      }
-    }
-
-    if (this.dir === DIR.NONE) {
-      return { scoreDelta: 0, dotsEaten: 0, powerEaten: false };
-    }
-
     // Speed with boost
     let currentSpeed = this.speed;
     if (this.speedBoostTimer > 0) currentSpeed *= 1.5;
     const speed = currentSpeed * dt * 60;
 
-    this.x += this.dir.x * speed;
-    this.y += this.dir.y * speed;
+    // Calculate move distance
+    const moveX = this.dir.x * speed;
+    const moveY = this.dir.y * speed;
+
+    // Current position details
+    const tile = this.getTile();
+    const centerX = tile.x * TILE + TILE / 2;
+    const centerY = tile.y * TILE + TILE / 2;
+
+    // Check if we overshoot the center in this frame
+    let passedCenter = false;
+    if (this.dir.x > 0 && this.x < centerX && (this.x + moveX) >= centerX) passedCenter = true;
+    else if (this.dir.x < 0 && this.x > centerX && (this.x + moveX) <= centerX) passedCenter = true;
+    else if (this.dir.y > 0 && this.y < centerY && (this.y + moveY) >= centerY) passedCenter = true;
+    else if (this.dir.y < 0 && this.y > centerY && (this.y + moveY) <= centerY) passedCenter = true;
+
+    // Also consider cases where we are practically AT the center (within minimal tolerance)
+    // but not moving enough to "cross" it (e.g. starting move from center)
+    if (!passedCenter && this.isAtTileCenter()) {
+       // Force a re-evaluation if we are perfectly aligned, to allow immediate turns
+       passedCenter = true; 
+    }
+
+    if (passedCenter) {
+      // Snap to center first
+      this.x = centerX;
+      this.y = centerY;
+
+      // Try to turn to nextDir
+      const inTunnel = tile.x < 0 || tile.x >= COLS;
+      let turned = false;
+
+      if (this.nextDir !== DIR.NONE && !inTunnel) {
+        const ntx = tile.x + this.nextDir.x;
+        const nty = tile.y + this.nextDir.y;
+        if (PacMan.isWalkable(ntx, nty, map)) {
+          this.dir = this.nextDir;
+          this.nextDir = DIR.NONE; // Consumed
+          turned = true;
+        }
+      }
+
+      // If didn't turn, check if we can continue straight
+      if (!turned) {
+        const ftx = tile.x + this.dir.x;
+        const fty = tile.y + this.dir.y;
+        if (!PacMan.isWalkable(ftx, fty, map)) {
+           // Hit a wall, stop dead
+           this.dir = DIR.NONE;
+        }
+      }
+      
+      // If we still have a direction, apply the rest of the movement? 
+      // For simplicity and to avoid bugs, we just move from the center starting next frame
+      // or we can add a small nudge. Let's just snap for this frame to ensure safety.
+    } else {
+      this.x += moveX;
+      this.y += moveY;
+    }
+    
     this.tunnelWrap();
 
     // Mouth animation
