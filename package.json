@@ -1,5 +1,5 @@
 {
-  "name": "jogo-pacman",
+  "name": "dvs-pacman",
   "version": "1.0.0",
   "description": "PAC-MAN — Jogo clássico com 6 fases, ranking e prêmios. Zero dependências externas.",
   "main": "server.js",
@@ -15,7 +15,7 @@
     "javascript",
     "canvas"
   ],
-  "author": "",
+  "author": "@davisimoncelo",
   "license": "ISC",
   "dependencies": {
     "better-sqlite3": "^12.6.2"
