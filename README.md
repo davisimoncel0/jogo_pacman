@@ -46,6 +46,19 @@ O jogo estará disponível em **http://localhost:3000**
 | `npm start` | Inicia o servidor em http://localhost:3000 |
 | `npm run dev` | Mesmo que `npm start` |
 | `npm run reset-db` | Reseta o ranking (apaga todas as pontuações) |
+| `npm run kill-port` | Derruba o processo que está ocupando a porta 3000 (Mac/Linux) |
+
+### ⚠️ Erro "Address already in use" (EADDRINUSE)
+
+Se ao rodar `npm start` você ver um erro dizendo que a porta 3000 já está em uso, execute:
+
+```bash
+# Opção 1: Via script do projeto (Mac/Linux)
+npm run kill-port
+
+# Opção 2: Manualmente
+lsof -ti:3000 | xargs kill -9
+```
 
 ## 🎯 Como Jogar
 
@@ -70,22 +83,12 @@ echo '[]' > ranking.json
 
 ```
 jogo_pacman/
-├── server.js              # Servidor Node.js (zero deps)
-├── package.json           # Configuração do projeto
-├── ranking.json           # Banco de dados do ranking (JSON)
-├── README.md              # Este arquivo
-└── public/                # Arquivos estáticos
-    ├── index.html         # Página principal
-    ├── style.css          # Estilos (tema neon/glassmorphism)
-    └── js/                # Módulos JavaScript (ES6)
-        ├── main.js        # Ponto de entrada
-        ├── constants.js   # Constantes
-        ├── levels.js      # Mapas dos níveis
-        ├── Entity.js      # Classe base
-        ├── PacMan.js      # Classe do Pac-Man
-        ├── Ghost.js       # Classe dos Fantasmas
-        ├── Renderer.js    # Classe de Renderização
-        ├── InputHandler.js    # Classe de Input
-        ├── RankingService.js  # Serviço de Ranking
-        └── GameEngine.js      # Motor do Jogo
+├── index.html             # Página principal
+├── server.js              # Servidor Node.js
+├── package.json           # Configuração
+├── ranking.json           # Ranking (JSON)
+├── README.md              # Documentação
+└── public/
+    ├── css/               # Estilos (style.css)
+    └── js/                # Módulos JS (main.js, GameEngine.js, etc.)
 ```

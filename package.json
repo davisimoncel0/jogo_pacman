@@ -6,9 +6,18 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "reset-db": "node -e \"require('fs').writeFileSync('ranking.json', '[]'); console.log('Ranking resetado!')\""
+    "reset-db": "node -e \"const fs = require('fs'); if (fs.existsSync('rankings.db')) { fs.unlinkSync('rankings.db'); console.log('Banco de dados resetado!'); } else { console.log('Banco de dados não encontrado.'); }\"",
+    "kill-port": "lsof -ti:3000 | xargs kill -9 || echo 'Nenhum processo na porta 3000'"
   },
-  "keywords": ["pacman", "game", "javascript", "canvas"],
+  "keywords": [
+    "pacman",
+    "game",
+    "javascript",
+    "canvas"
+  ],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "better-sqlite3": "^12.6.2"
+  }
 }
