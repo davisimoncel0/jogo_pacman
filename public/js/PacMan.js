@@ -2,6 +2,7 @@ import { Entity } from './Entity.js';
 import {
   TILE, DIR, COLS, ROWS, WALL, DOT, POWER, EMPTY, GHOST_DOOR,
   PACMAN_START, SCORE_CHERRY, SCORE_POWER,
+  MUSHROOM_SPEED_MULTIPLIER,
 } from './constants.js';
 
 /**
@@ -21,7 +22,9 @@ export class PacMan extends Entity {
     this.speed = 2.2;             // Velocidade constante do Pac-Man
     this.mouthOpen = 0;           // Estado da animação da boca (0 = fechada, 1 = aberta)
     this.mouthDir = 1;            // Sentido da animação (1 = abrindo, -1 = fechando)
-    this.speedBoostTimer = 0;     // Tempo restante do boost de velocidade (ms)
+    this.speedBoostTimer = 0;     // Tempo restante do boost de velocidade da cereja (ms)
+    this.mushroomPowerTimer = 0;  // Tempo restante do efeito do cogumelo (ms)
+    this.mushroomPower = false;   // Flag para efeito visual colorido do cogumelo
   }
 
   /**
@@ -37,6 +40,8 @@ export class PacMan extends Entity {
     this.speed = 2.2;
     this.mouthOpen = 0;
     this.mouthDir = 1;
+    this.mushroomPowerTimer = 0;
+    this.mushroomPower = false;
   }
 
   /**
@@ -58,9 +63,10 @@ export class PacMan extends Entity {
       return { scoreDelta: 0, dotsEaten: 0, powerEaten: false };
     }
 
-    // Calcula velocidade com boost (1.5x) se ativo
+    // Calcula velocidade com boosts ativos
     let currentSpeed = this.speed;
-    if (this.speedBoostTimer > 0) currentSpeed *= 1.5;
+    if (this.mushroomPowerTimer > 0) currentSpeed *= MUSHROOM_SPEED_MULTIPLIER; // Cogumelo: 2x
+    else if (this.speedBoostTimer > 0) currentSpeed *= 1.5; // Cereja: 1.5x
     const speed = currentSpeed * dt * 60;
 
     // Deslocamento baseado na direção atual
@@ -174,6 +180,21 @@ export class PacMan extends Entity {
     if (this.speedBoostTimer > 0) {
       this.speedBoostTimer -= dt * 1000;
       if (this.speedBoostTimer <= 0) this.speedBoostTimer = 0;
+    }
+  }
+
+  /**
+   * Atualiza o timer do efeito do cogumelo brilhante.
+   * Quando o timer expira, desativa o efeito visual e de velocidade.
+   * @param {number} dt - Delta time em segundos
+   */
+  updateMushroomPower(dt) {
+    if (this.mushroomPowerTimer > 0) {
+      this.mushroomPowerTimer -= dt * 1000;
+      if (this.mushroomPowerTimer <= 0) {
+        this.mushroomPowerTimer = 0;
+        this.mushroomPower = false;
+      }
     }
   }
 
