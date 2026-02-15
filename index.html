@@ -29,6 +29,7 @@
             placeholder="Digite seu nome..."
             maxlength="20"
             autocomplete="off"
+            autofocus
           />
           <button id="btn-start" class="btn btn-primary" disabled>
             <span>▶</span> JOGAR
@@ -42,6 +43,22 @@
           <div class="ghost ghost-pink"></div>
           <div class="ghost ghost-cyan"></div>
           <div class="ghost ghost-orange"></div>
+        </div>
+
+        <!-- Instruções de como jogar — visível apenas no desktop -->
+        <div class="how-to-play">
+          <p class="how-to-play-title">🎮 COMO JOGAR</p>
+          <div class="how-to-play-keys">
+            <div class="key-group">
+              <span class="key-icon">←↑↓→</span>
+              <span class="key-label">Setas do teclado</span>
+            </div>
+            <div class="key-separator">ou</div>
+            <div class="key-group">
+              <span class="key-icon">WASD</span>
+              <span class="key-label">Teclas alternativas</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -60,7 +77,31 @@
             <span class="hud-label">VIDAS</span>
             <span class="hud-value" id="hud-lives">❤️❤️❤️</span>
           </div>
+          <div class="hud-item mobile-config-toggle">
+            <button id="btn-mobile-config" class="btn-icon">⚙️</button>
+          </div>
         </div>
+
+        <!-- MOBILE CONFIG MODAL -->
+        <div id="mobile-config-panel" class="mobile-panel hidden">
+          <h3>CONTROLES</h3>
+          <div class="config-row">
+            <span>Tipo:</span>
+            <div class="toggle-group">
+              <button id="cfg-type-joy" class="cfg-btn active">JOYSTICK</button>
+              <button id="cfg-type-swipe" class="cfg-btn">SWIPE</button>
+            </div>
+          </div>
+          <div class="config-row">
+            <span>Joystick:</span>
+            <div class="toggle-group">
+              <button id="cfg-joy-show" class="cfg-btn active">VER</button>
+              <button id="cfg-joy-hide" class="cfg-btn">OCULTAR</button>
+            </div>
+          </div>
+          <button id="btn-close-config" class="btn btn-secondary btn-sm">FECHAR</button>
+        </div>
+
         <canvas id="game-canvas"></canvas>
         
         <!-- TOUCH CONTROLS (Visible only on mobile/touch devices) -->
