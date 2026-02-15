@@ -58,8 +58,11 @@ export class Mushroom {
     const validTiles = [];
 
     // Coleta todos os tiles válidos para spawn (internos ao mapa)
+    // Exclui a área da casa dos fantasmas (linhas 8-10, colunas 9-11)
     for (let r = 1; r < ROWS - 1; r++) {
       for (let c = 1; c < COLS - 1; c++) {
+        // Não spawnar dentro da casa dos fantasmas
+        if (r >= 8 && r <= 10 && c >= 9 && c <= 11) continue;
         const cell = map[r][c];
         if (cell === EMPTY || cell === DOT) {
           validTiles.push({ x: c, y: r });
