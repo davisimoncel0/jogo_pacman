@@ -106,36 +106,18 @@ export class Renderer {
   }
 
   /**
-   * Desenha a power pellet (cereja de poder) como um círculo branco/creme.
-   * Visual estático (sem pulsação), com glow suave e reflexo interno.
+   * Desenha a power pellet (cereja de poder).
+   * Mesma cor dos dots (#ffcc66), apenas ligeiramente maior.
    * @param {number} x - Posição X em pixels
    * @param {number} y - Posição Y em pixels
    */
   _drawCherry(x, y) {
     const ctx = this.ctx;
-    const cx = x + TILE / 2;
-    const cy = y + TILE / 2;
-    const radius = TILE / 2 - 3;
-
-    // Glow externo suave (sem pulsação)
-    ctx.save();
-    ctx.shadowColor = '#fffbe6';
-    ctx.shadowBlur = 8;
-
-    // Círculo branco/creme (sem animação)
-    ctx.fillStyle = '#f5f0e0';
+    // Mesma cor dos dots, raio um pouco maior (4.5 vs 2.5 dos dots)
+    ctx.fillStyle = '#ffcc66';
     ctx.beginPath();
-    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.arc(x + TILE / 2, y + TILE / 2, 4.5, 0, Math.PI * 2);
     ctx.fill();
-
-    // Reflexo de brilho interno
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-    ctx.beginPath();
-    ctx.arc(cx - 2, cy - 2, radius * 0.35, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.restore();
   }
   /**
    * Desenha o cogumelo brilhante (power-up especial andante).
