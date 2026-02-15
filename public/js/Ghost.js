@@ -260,7 +260,7 @@ export class Ghost extends Entity {
     if (dt > 0) {
         this.x += this.dir.x * speed;
         this.y += this.dir.y * speed;
-        this.tunnelWrap(); // Verifica teleporte pelos túneis
+        // Fantasmas NÃO usam túnel — apenas Pac-Man pode
     }
   }
 
@@ -275,7 +275,7 @@ export class Ghost extends Entity {
    * @returns {boolean} true se o tile é transitável
    */
   static isWalkable(tx, ty, map, ghostExited) {
-    if (tx < 0 || tx >= COLS) return true;    // Túnel lateral
+    if (tx < 0 || tx >= COLS) return false;   // Fantasmas NÃO podem usar túneis
     if (ty < 0 || ty >= ROWS) return false;   // Fora do mapa
     const cell = map[ty][tx];
     if (cell === WALL) return false;
