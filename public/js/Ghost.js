@@ -175,7 +175,7 @@ export class Ghost extends Entity {
    * 
    * IA de perseguição:
    * - Normal: busca a direção que mais se aproxima do Pac-Man (distância euclidiana)
-   * - Assustado: foge para o canto mais distante do Pac-Man
+   * - Assustado: escolhe uma direção ALEATÓRIA em cada interseção (comportamento clássico)
    * 
    * Regras:
    * - Não pode fazer inversão de 180° (exceto se encurralado)
@@ -194,52 +194,42 @@ export class Ghost extends Entity {
       this.snapToCenter();
       const tile = this.getTile();
 
-      let target;
-      if (this.frightened) {
-        // Fuga: busca o canto mais distante do Pac-Man
-        const corners = [
-          { x: 1, y: 1 },
-          { x: COLS - 2, y: 1 },
-          { x: 1, y: ROWS - 2 },
-          { x: COLS - 2, y: ROWS - 2 }
-        ];
-        
-        let maxDistSq = -1;
-        target = corners[0];
-        const pt = pacTile || { x: 10, y: 15 };
-
-        for (const corner of corners) {
-          const dSq = (corner.x - pt.x) ** 2 + (corner.y - pt.y) ** 2;
-          if (dSq > maxDistSq) {
-            maxDistSq = dSq;
-            target = corner;
-          }
-        }
-      } else {
-        // Perseguição: alvo é a posição do Pac-Man
-        target = pacTile || { x: 10, y: 15 };
-      }
-
-      // Avalia todas as 4 direções e escolhe a que mais aproxima do alvo
       const opposite = { x: -this.dir.x, y: -this.dir.y };
       const directions = [DIR.UP, DIR.DOWN, DIR.LEFT, DIR.RIGHT];
       let bestDir = null;
-      let bestDist = Infinity;
 
-      for (const d of directions) {
-        // Impede inversão de 180° (anti-oscilação)
-        if (d.x === opposite.x && d.y === opposite.y) continue;
-        
-        const ntx = tile.x + d.x;
-        const nty = tile.y + d.y;
-        
-        if (!Ghost.isWalkable(ntx, nty, map, this.exited)) continue;
-        
-        // Distância euclidiana ao quadrado (sem sqrt para performance)
-        const dist = (ntx - target.x) ** 2 + (nty - target.y) ** 2;
-        if (dist < bestDist) {
-          bestDist = dist;
-          bestDir = d;
+      if (this.frightened) {
+        // Modo assustado: direção ALEATÓRIA (comportamento clássico do Pac-Man)
+        // Filtra direções válidas (sem inversão 180° e sem paredes)
+        const validDirs = directions.filter(d => {
+          if (d.x === opposite.x && d.y === opposite.y) return false;
+          return Ghost.isWalkable(tile.x + d.x, tile.y + d.y, map, this.exited);
+        });
+
+        if (validDirs.length > 0) {
+          // Escolhe aleatoriamente entre as direções válidas
+          bestDir = validDirs[Math.floor(Math.random() * validDirs.length)];
+        }
+      } else {
+        // Perseguição: alvo é a posição do Pac-Man
+        const target = pacTile || { x: 10, y: 15 };
+        let bestDist = Infinity;
+
+        for (const d of directions) {
+          // Impede inversão de 180° (anti-oscilação)
+          if (d.x === opposite.x && d.y === opposite.y) continue;
+
+          const ntx = tile.x + d.x;
+          const nty = tile.y + d.y;
+
+          if (!Ghost.isWalkable(ntx, nty, map, this.exited)) continue;
+
+          // Distância euclidiana ao quadrado (sem sqrt para performance)
+          const dist = (ntx - target.x) ** 2 + (nty - target.y) ** 2;
+          if (dist < bestDist) {
+            bestDist = dist;
+            bestDir = d;
+          }
         }
       }
 
