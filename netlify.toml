@@ -2,8 +2,8 @@
   functions = "netlify/functions"
 
 [[redirects]]
-  from = "/api/rankings"
-  to = "/.netlify/functions/rankings"
+  from = "/api/*"
+  to = "/.netlify/functions/api"
   status = 200
   force = true
 
