@@ -7,7 +7,6 @@
   status = 200
   force = true
 
-[(optional)]
 # For SPA routing (if using React/Vue router, etc. - not strictly needed for SPA with hash router but good practice)
 [[redirects]]
   from = "/*"
