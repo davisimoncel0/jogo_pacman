@@ -106,8 +106,8 @@ export class Renderer {
   }
 
   /**
-   * Desenha uma cereja 🍒 (power pellet / cereja de poder).
-   * Composta por dois círculos vermelhos, reflexo e caules verdes.
+   * Desenha a power pellet (cereja de poder) como um círculo branco/creme.
+   * Visual estático (sem pulsação), com glow suave e reflexo interno.
    * @param {number} x - Posição X em pixels
    * @param {number} y - Posição Y em pixels
    */
@@ -115,39 +115,87 @@ export class Renderer {
     const ctx = this.ctx;
     const cx = x + TILE / 2;
     const cy = y + TILE / 2;
+    const radius = TILE / 2 - 3;
 
-    // Corpo da cereja (dois círculos vermelhos)
-    ctx.fillStyle = '#ff2244';
-    ctx.beginPath();
-    ctx.arc(cx - 3, cy + 1, 6, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(cx + 3, cy + 1, 6, 0, Math.PI * 2);
-    ctx.fill();
+    // Glow externo suave (sem pulsação)
+    ctx.save();
+    ctx.shadowColor = '#fffbe6';
+    ctx.shadowBlur = 8;
 
-    // Reflexo de brilho
-    ctx.fillStyle = '#ff8899';
+    // Círculo branco/creme (sem animação)
+    ctx.fillStyle = '#f5f0e0';
     ctx.beginPath();
-    ctx.arc(cx - 4, cy - 1, 2, 0, Math.PI * 2);
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
     ctx.fill();
 
-    // Caules verdes (curvas quadráticas)
-    ctx.strokeStyle = '#33aa33';
-    ctx.lineWidth = 2;
+    // Reflexo de brilho interno
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
     ctx.beginPath();
-    ctx.moveTo(cx - 1, cy - 4);
-    ctx.quadraticCurveTo(cx, cy - 8, cx + 2, cy - 6);
-    ctx.stroke();
+    ctx.arc(cx - 2, cy - 2, radius * 0.35, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+  /**
+   * Desenha o cogumelo brilhante (power-up especial andante).
+   * Inclui corpo com glow pulsante arco-íris e chapéu com manchas.
+   * @param {import('./Mushroom.js').Mushroom} mushroom - Instância do cogumelo
+   */
+  drawMushroom(mushroom) {
+    if (!mushroom.active) return;
+    const ctx = this.ctx;
+    const x = mushroom.x;
+    const y = mushroom.y;
+    const t = Date.now() / 200;
+
+    // Cores que ciclam no arco-íris
+    const hue = (t * 30) % 360;
+    const pulse = 0.6 + 0.4 * Math.sin(t);
+
+    ctx.save();
+
+    // Glow externo arco-íris
+    ctx.shadowColor = `hsl(${hue}, 100%, 60%)`;
+    ctx.shadowBlur = 15 * pulse;
+
+    // Caule do cogumelo (retângulo branco-rosado)
+    ctx.fillStyle = '#ffe8cc';
+    ctx.fillRect(x - 3, y - 1, 6, 8);
+
+    // Chapéu do cogumelo (semicírculo colorido)
+    ctx.fillStyle = `hsl(${hue}, 80%, 50%)`;
     ctx.beginPath();
-    ctx.moveTo(cx + 1, cy - 4);
-    ctx.quadraticCurveTo(cx + 2, cy - 8, cx + 4, cy - 6);
-    ctx.stroke();
+    ctx.arc(x, y - 2, TILE / 2 - 3, Math.PI, 0);
+    ctx.fill();
+
+    // Manchas brancas no chapéu
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.beginPath();
+    ctx.arc(x - 3, y - 5, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x + 3, y - 4, 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+
+    // Brilho/estrela cintilante
+    if (Math.sin(t * 3) > 0) {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.beginPath();
+      ctx.arc(x - 5, y - 7, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
   }
 
   /**
    * Desenha o Pac-Man com animação de boca abrindo/fechando.
    * A rotação é baseada na direção atual de movimento.
-   * Inclui efeito de brilho neon amarelo e indicador de boost de velocidade.
+   * Inclui efeito de brilho neon amarelo, indicador de boost de velocidade
+   * e efeito visual colorido quando sob efeito do cogumelo brilhante.
    * @param {import('./PacMan.js').PacMan} pacman - Instância do Pac-Man
    */
   drawPacMan(pacman) {
@@ -161,14 +209,24 @@ export class Renderer {
     else if (pacman.dir === DIR.LEFT) rotation = Math.PI;
     else if (pacman.dir === DIR.UP) rotation = -Math.PI / 2;
 
+    // Determina a cor do Pac-Man (colorido quando cogumelo ativo)
+    let bodyColor = '#ffe600';
+    let glowColor = '#ffe600';
+    if (pacman.mushroomPower) {
+      const t = Date.now() / 100;
+      const hue = (t * 50) % 360;
+      bodyColor = `hsl(${hue}, 100%, 60%)`;
+      glowColor = `hsl(${hue}, 100%, 70%)`;
+    }
+
     ctx.save();
     ctx.translate(pacman.x, pacman.y);
     ctx.rotate(rotation);
 
-    // Corpo amarelo com brilho neon
-    ctx.shadowColor = '#ffe600';
-    ctx.shadowBlur = 12;
-    ctx.fillStyle = '#ffe600';
+    // Corpo com brilho neon
+    ctx.shadowColor = glowColor;
+    ctx.shadowBlur = pacman.mushroomPower ? 20 : 12;
+    ctx.fillStyle = bodyColor;
     ctx.beginPath();
     ctx.arc(0, 0, TILE / 2 - 2, angle, Math.PI * 2 - angle);
     ctx.lineTo(0, 0);
@@ -177,8 +235,25 @@ export class Renderer {
     ctx.shadowBlur = 0;
     ctx.restore();
 
-    // Indicador visual de boost de velocidade (anel ciano)
-    if (pacman.speedBoostTimer > 0) {
+    // Indicador visual de boost de velocidade
+    if (pacman.mushroomPower) {
+      // Efeito arco-íris pulsante para o cogumelo (anel duplo)
+      const t = Date.now() / 200;
+      const hue = (t * 30) % 360;
+      ctx.save();
+      ctx.strokeStyle = `hsla(${hue}, 100%, 60%, 0.6)`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(pacman.x, pacman.y, TILE / 2 + 4, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.strokeStyle = `hsla(${(hue + 180) % 360}, 100%, 60%, 0.4)`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(pacman.x, pacman.y, TILE / 2 + 7, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    } else if (pacman.speedBoostTimer > 0) {
+      // Anel ciano para boost da cereja
       ctx.save();
       ctx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
       ctx.lineWidth = 2;
