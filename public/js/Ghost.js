@@ -149,26 +149,29 @@ export class Ghost extends Entity {
 
       let target;
       if (this.frightened) {
-        // Run AWAY from Pac-Man
-        // Target is the corner furthest from Pac-Man
+        // Run AWAY from Pac-Man by targeting the corner furthest from him
         const corners = [
-            { x: 1, y: 1 },
-            { x: COLS - 2, y: 1 },
-            { x: 1, y: ROWS - 2 },
-            { x: COLS - 2, y: ROWS - 2 }
+          { x: 1, y: 1 },
+          { x: COLS - 2, y: 1 },
+          { x: 1, y: ROWS - 2 },
+          { x: COLS - 2, y: ROWS - 2 }
         ];
-        let maxDist = -1;
         
+        // Find corner furthest from Pac-Man
+        let maxDistSq = -1;
+        target = corners[0]; // fallback
+        
+        const pt = pacTile || { x: 10, y: 15 }; // Safety fallback
+
         for (const corner of corners) {
-            const d = (corner.x - pacTile.x) ** 2 + (corner.y - pacTile.y) ** 2;
-            if (d > maxDist) {
-                maxDist = d;
-                target = corner;
-            }
+          const dSq = (corner.x - pt.x) ** 2 + (corner.y - pt.y) ** 2;
+          if (dSq > maxDistSq) {
+            maxDistSq = dSq;
+            target = corner;
+          }
         }
       } else {
-        // Chase logic - Aggressive direct chase for ALL ghosts to ensure they go after Pac-Man
-        target = pacTile;
+        target = pacTile || { x: 10, y: 15 };
       }
 
       // Find best direction (no reversing allowed usually, but simplified here)
