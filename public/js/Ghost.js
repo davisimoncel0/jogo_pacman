@@ -33,6 +33,7 @@ export class Ghost extends Entity {
     this.exited = false;                     // Se já saiu da casa dos fantasmas
     this.exiting = false;                    // Se está no processo de sair da casa
     this.exitTimer = Ghost.EXIT_TIMERS[index]; // Tempo de espera antes de sair
+    this.lastDecisionTile = null;            // Último tile onde tomou decisão de direção
   }
 
   /**
@@ -56,6 +57,7 @@ export class Ghost extends Entity {
     this.exited = false;
     this.exiting = false;
     this.exitTimer = Ghost.EXIT_TIMERS[this.index];
+    this.lastDecisionTile = null;
   }
 
   /**
@@ -189,61 +191,69 @@ export class Ghost extends Entity {
     const currentSpeed = (this.frightened ? this.speed * 0.6 : this.speed);
     const speed = currentSpeed * (dt > 0 ? dt : 0.016) * 60; // dt=0 na primeira chamada
 
-    // Decisão de direção acontece apenas no centro de cada tile
+    // Decisão de direção acontece apenas no centro de cada tile,
+    // e somente uma vez por tile (evita re-snap que trava o movimento)
     if (this.isAtTileCenter()) {
-      this.snapToCenter();
       const tile = this.getTile();
+      const isSameTile = this.lastDecisionTile &&
+        this.lastDecisionTile.x === tile.x &&
+        this.lastDecisionTile.y === tile.y;
 
-      const opposite = { x: -this.dir.x, y: -this.dir.y };
-      const directions = [DIR.UP, DIR.DOWN, DIR.LEFT, DIR.RIGHT];
-      let bestDir = null;
+      if (!isSameTile) {
+        this.snapToCenter();
+        this.lastDecisionTile = { x: tile.x, y: tile.y };
 
-      if (this.frightened) {
-        // Modo assustado: direção ALEATÓRIA (comportamento clássico do Pac-Man)
-        // Filtra direções válidas (sem inversão 180° e sem paredes)
-        const validDirs = directions.filter(d => {
-          if (d.x === opposite.x && d.y === opposite.y) return false;
-          return Ghost.isWalkable(tile.x + d.x, tile.y + d.y, map, this.exited);
-        });
+        const opposite = { x: -this.dir.x, y: -this.dir.y };
+        const directions = [DIR.UP, DIR.DOWN, DIR.LEFT, DIR.RIGHT];
+        let bestDir = null;
 
-        if (validDirs.length > 0) {
-          // Escolhe aleatoriamente entre as direções válidas
-          bestDir = validDirs[Math.floor(Math.random() * validDirs.length)];
-        }
-      } else {
-        // Perseguição: alvo é a posição do Pac-Man
-        const target = pacTile || { x: 10, y: 15 };
-        let bestDist = Infinity;
+        if (this.frightened) {
+          // Modo assustado: direção ALEATÓRIA (comportamento clássico do Pac-Man)
+          // Filtra direções válidas (sem inversão 180° e sem paredes)
+          const validDirs = directions.filter(d => {
+            if (d.x === opposite.x && d.y === opposite.y) return false;
+            return Ghost.isWalkable(tile.x + d.x, tile.y + d.y, map, this.exited);
+          });
 
-        for (const d of directions) {
-          // Impede inversão de 180° (anti-oscilação)
-          if (d.x === opposite.x && d.y === opposite.y) continue;
+          if (validDirs.length > 0) {
+            // Escolhe aleatoriamente entre as direções válidas
+            bestDir = validDirs[Math.floor(Math.random() * validDirs.length)];
+          }
+        } else {
+          // Perseguição: alvo é a posição do Pac-Man
+          const target = pacTile || { x: 10, y: 15 };
+          let bestDist = Infinity;
 
-          const ntx = tile.x + d.x;
-          const nty = tile.y + d.y;
+          for (const d of directions) {
+            // Impede inversão de 180° (anti-oscilação)
+            if (d.x === opposite.x && d.y === opposite.y) continue;
 
-          if (!Ghost.isWalkable(ntx, nty, map, this.exited)) continue;
+            const ntx = tile.x + d.x;
+            const nty = tile.y + d.y;
 
-          // Distância euclidiana ao quadrado (sem sqrt para performance)
-          const dist = (ntx - target.x) ** 2 + (nty - target.y) ** 2;
-          if (dist < bestDist) {
-            bestDist = dist;
-            bestDir = d;
+            if (!Ghost.isWalkable(ntx, nty, map, this.exited)) continue;
+
+            // Distância euclidiana ao quadrado (sem sqrt para performance)
+            const dist = (ntx - target.x) ** 2 + (nty - target.y) ** 2;
+            if (dist < bestDist) {
+              bestDist = dist;
+              bestDir = d;
+            }
           }
         }
-      }
 
-      // Fallback: se encurralado (beco sem saída), permite inversão
-      if (!bestDir) {
-        for (const d of directions) {
-           if (Ghost.isWalkable(tile.x + d.x, tile.y + d.y, map, this.exited)) {
-             bestDir = d;
-             break;
-           }
+        // Fallback: se encurralado (beco sem saída), permite inversão
+        if (!bestDir) {
+          for (const d of directions) {
+             if (Ghost.isWalkable(tile.x + d.x, tile.y + d.y, map, this.exited)) {
+               bestDir = d;
+               break;
+             }
+          }
         }
-      }
 
-      if (bestDir) this.dir = bestDir;
+        if (bestDir) this.dir = bestDir;
+      }
     }
 
     // Aplica o movimento se dt > 0 (evita mover na primeira chamada)
