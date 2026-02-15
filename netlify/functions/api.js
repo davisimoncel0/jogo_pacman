@@ -7,7 +7,10 @@ let client;
 async function getClient() {
   if (!client) {
     if (!uri) throw new Error("Missing MONGODB_URI");
-    client = new MongoClient(uri);
+    client = new MongoClient(uri, {
+      serverSelectionTimeoutMS: 5000,
+      connectTimeoutMS: 5000
+    });
     await client.connect();
   }
   return client;
