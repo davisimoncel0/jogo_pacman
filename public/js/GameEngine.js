@@ -36,8 +36,10 @@ export class GameEngine {
     this.$gameoverScore  = document.getElementById('gameover-score-value');
     this.$gameoverLevel  = document.getElementById('gameover-level-value');
     this.$rankingList    = document.getElementById('ranking-list');
+    this.$touchControls  = document.getElementById('touch-controls');
 
     // State
+    this.isMobile = this._checkMobile();
     this.playerName = '';
     this.score = 0;
     this.lives = 3;
@@ -62,6 +64,12 @@ export class GameEngine {
     this.$playerName.addEventListener('input', () => {
       this.$btnStart.disabled = this.$playerName.value.trim().length === 0;
     });
+
+    // Usuário de teste da Antigravity
+    if (!this.$playerName.value) {
+      this.$playerName.value = 'ANTIGRAVITY';
+      this.$btnStart.disabled = false;
+    }
 
     this.$btnStart.addEventListener('click', () => {
       this.playerName = this.$playerName.value.trim();
@@ -109,6 +117,20 @@ export class GameEngine {
       s.classList.remove('active')
     );
     screen.classList.add('active');
+    
+    // Mostra controles touch apenas no game-screen e se for mobile
+    if (this.isMobile && screen === this.$gameScreen) {
+      this.$touchControls.classList.remove('hidden');
+    } else {
+      this.$touchControls.classList.add('hidden');
+    }
+  }
+
+  /** Detect if user is on a mobile/touch device. */
+  _checkMobile() {
+    const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    const isSmallScreen = window.innerWidth <= 800;
+    return isTouch || isSmallScreen;
   }
 
   /** Start a new game. */

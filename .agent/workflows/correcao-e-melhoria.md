@@ -13,6 +13,9 @@ description: Este workflow e um passo-a-passo para corrigir erros ou realizar me
 
 ## Tarefas
 
+> [!IMPORTANT]
+> **SEMPRE** execute o projeto usando o comando definido no `package.json` (ex: `npm run dev`) antes de tentar abrir a aplicação no navegador. Não perca tempo tentando abrir arquivos estáticos diretamente se o projeto possuir um servidor.
+
 1. Leias os arquivos js que fazem referencia ao erro informado
 2. Faca a correcao do erro
 3. Verifique se o erro foi mesmo corrigido subindo a aplicacao e executando testes visuais
