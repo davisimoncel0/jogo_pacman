@@ -158,13 +158,18 @@ export class PacMan extends Entity {
       const cell = map[newTile.y][newTile.x];
       if (cell === DOT) {
         map[newTile.y][newTile.x] = EMPTY;  // Remove o dot do mapa
-        scoreDelta += SCORE_CHERRY;
+        // Cogumelo ativo: pontos dobrados
+        scoreDelta += this.mushroomPower ? SCORE_CHERRY * 2 : SCORE_CHERRY;
         dotsEaten++;
       } else if (cell === POWER) {
-        map[newTile.y][newTile.x] = EMPTY;  // Remove a cereja do mapa
-        scoreDelta += SCORE_POWER;
-        dotsEaten++;
-        powerEaten = true; // Sinaliza para ativar modo assustado
+        // Só consome a power pellet se NÃO estiver sob efeito de nenhum poder
+        // (nem cogumelo, nem outra cereja de poder)
+        if (!this.mushroomPower && this.speedBoostTimer <= 0) {
+          map[newTile.y][newTile.x] = EMPTY;  // Remove a cereja do mapa
+          scoreDelta += SCORE_POWER;
+          // Power pellet NÃO conta como dot para completar a fase
+          powerEaten = true; // Sinaliza para ativar modo assustado
+        }
       }
     }
 

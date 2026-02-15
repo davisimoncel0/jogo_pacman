@@ -32,11 +32,19 @@ Este documento define os requisitos funcionais e técnicos para o desenvolviment
 
 ### 3.2. Itens e Power-ups
 
-*   **Pastilhas (Dots)**: Itens comuns espalhados pelo mapa. Aumentam a pontuação (ex: 10 pontos).
-*   **Cereja (Power Item)**:
+*   **Pastilhas (Dots)**: Itens comuns espalhados pelo mapa. Aumentam a pontuação (10 pontos). São os **únicos itens que contam para completar a fase**.
+*   **Cereja (Power Pellet)**:
     *   **Diferencial**: Ao contrário do jogo clássico onde a cereja é apenas pontuação bônus, neste projeto **a Cereja concede superpoderes**.
-    *   **Efeito**: Ao comer a cereja, os fantasmas tornam-se vulneráveis (azuis) por um período limitado. Pac-Man pode comê-los para ganhar pontos extras (ex: 200, 400, 800, 1600).
-    *   **Visual**: Deve ser destacada e apetitosa.
+    *   **Efeito**: Ao comer a cereja, os fantasmas tornam-se vulneráveis (azuis) por um período limitado. Pac-Man pode comê-los para ganhar pontos extras (200 pontos).
+    *   **Velocidade**: Concede boost de velocidade 1.5x durante 5 segundos.
+    *   **NÃO conta para completar a fase** — apenas concede poder.
+    *   **Exclusividade**: Só pode ser consumida se **nenhum poder estiver ativo** (nem cereja, nem cogumelo).
+*   **Cogumelo Brilhante (Power-Up Especial)**:
+    *   Aparece periodicamente no mapa por tempo limitado.
+    *   **Velocidade**: Concede boost de 1.7x (um pouco mais que a cereja).
+    *   **Pontos Dobrados**: Enquanto ativo, todos os pontos (dots e fantasmas) são multiplicados por 2.
+    *   **Duração**: 12 segundos (maior que a cereja).
+    *   **Exclusividade**: Só pode ser consumido se **o poder da cereja NÃO estiver ativo**, e vice-versa.
 
 ### 3.3. Elementos do Mapa
 

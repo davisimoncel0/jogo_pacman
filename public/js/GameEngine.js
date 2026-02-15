@@ -182,11 +182,11 @@ export class GameEngine {
     // Cópia profunda do mapa para não alterar o original
     this.map = LEVELS[lvl].map(row => [...row]);
 
-    // Conta quantos dots e power pellets existem na fase
+    // Conta apenas os DOTs para completar a fase (POWER não conta)
     this.dotsRemaining = 0;
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
-        if (this.map[r][c] === DOT || this.map[r][c] === POWER) this.dotsRemaining++;
+        if (this.map[r][c] === DOT) this.dotsRemaining++;
       }
     }
 
@@ -239,8 +239,12 @@ export class GameEngine {
    * Quando o Pac-Man come uma Power Pellet (cereja grande),
    * os fantasmas ficam vulneráveis e podem ser comidos.
    * Também ativa o boost de velocidade do Pac-Man.
+   * NÃO ativa se o cogumelo já estiver ativo (exclusividade de poderes).
    */
   _activateFrightened() {
+    // Exclusividade: se o cogumelo estiver ativo, não consome a power pellet
+    if (this.pacman.mushroomPower) return;
+
     this.frightenedTimer = FRIGHTENED_DURATION;
     this.pacman.speedBoostTimer = SPEED_BOOST_DURATION;
     this.ghosts.forEach(g => {
@@ -290,6 +294,9 @@ export class GameEngine {
    */
   _checkMushroomCollision() {
     if (!this.mushroom.active) return;
+    // Exclusividade: não pode pegar cogumelo se poder da cereja está ativo
+    if (this.frightenedTimer > 0) return;
+
     const dx = this.pacman.x - this.mushroom.x;
     const dy = this.pacman.y - this.mushroom.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
@@ -318,7 +325,8 @@ export class GameEngine {
         if (ghost.frightened) {
           // Fantasma assustado é comido — volta para a casa como olhos
           ghost.eaten = true;
-          this.score += SCORE_GHOST;
+          // Cogumelo ativo: pontos dobrados ao comer fantasma
+          this.score += this.pacman.mushroomPower ? SCORE_GHOST * 2 : SCORE_GHOST;
         } else {
           // Pac-Man perde uma vida
           this.lives--;
