@@ -43,13 +43,8 @@ export class GameEngine {
     this.$gameoverScore  = document.getElementById('gameover-score-value');
     this.$gameoverLevel  = document.getElementById('gameover-level-value');
     this.$rankingList    = document.getElementById('ranking-list');
-    this.$touchControls  = document.getElementById('touch-controls');
-    this.$mobileConfigPanel = document.getElementById('mobile-config-panel');
 
     // === Estado do jogo ===
-    this.controlType = 'joystick';  // Tipo de controle ativo: 'joystick' ou 'swipe'
-    this.joyVisible = true;         // Se o joystick virtual está visível
-    this.isMobile = this._checkMobile(); // Detecta se é dispositivo mobile
     this.playerName = '';           // Nome do jogador atual
     this.score = 0;                 // Pontuação acumulada
     this.lives = 3;                 // Vidas restantes
@@ -127,85 +122,9 @@ export class GameEngine {
       setTimeout(() => this.$playerName.focus(), 100);
     });
 
-    // === Eventos de Configuração Mobile ===
-
-    // Botão de engrenagem — abre/fecha o painel de configurações mobile
-    document.getElementById('btn-mobile-config').addEventListener('click', () => {
-      this.$mobileConfigPanel.classList.toggle('hidden');
-    });
-
-    // Botão "FECHAR" dentro do painel de configurações
-    document.getElementById('btn-close-config').addEventListener('click', () => {
-      this.$mobileConfigPanel.classList.add('hidden');
-    });
-
-    // Configura os botões de alternância (joystick/swipe, visível/oculto)
-    this._setupConfigButtons();
   }
 
-  /**
-   * Configura os botões de alternância do painel de configurações mobile.
-   * Permite ao jogador escolher entre controle por joystick ou gestos (swipe),
-   * e se o joystick virtual deve ficar visível ou oculto.
-   */
-  _setupConfigButtons() {
-    // --- Tipo de Controle: Joystick vs Swipe ---
-    const btnJoy = document.getElementById('cfg-type-joy');
-    const btnSwipe = document.getElementById('cfg-type-swipe');
-    
-    // Ao clicar em "JOYSTICK", ativa o modo joystick e destaca o botão
-    btnJoy.addEventListener('click', () => {
-      this.controlType = 'joystick';
-      btnJoy.classList.add('active');
-      btnSwipe.classList.remove('active');
-      this._updateControlVisibility();
-    });
-    
-    // Ao clicar em "SWIPE", ativa o modo gesto e oculta o joystick
-    btnSwipe.addEventListener('click', () => {
-      this.controlType = 'swipe';
-      btnSwipe.classList.add('active');
-      btnJoy.classList.remove('active');
-      this._updateControlVisibility();
-    });
 
-    // --- Visibilidade do Joystick: Ver vs Ocultar ---
-    const btnShow = document.getElementById('cfg-joy-show');
-    const btnHide = document.getElementById('cfg-joy-hide');
-
-    // Ao clicar em "VER", torna o joystick visível (se no modo joystick)
-    btnShow.addEventListener('click', () => {
-      this.joyVisible = true;
-      btnShow.classList.add('active');
-      btnHide.classList.remove('active');
-      this._updateControlVisibility();
-    });
-
-    // Ao clicar em "OCULTAR", esconde o joystick mas mantém gestos ativos
-    btnHide.addEventListener('click', () => {
-      this.joyVisible = false;
-      btnHide.classList.add('active');
-      btnShow.classList.remove('active');
-      this._updateControlVisibility();
-    });
-  }
-
-  /**
-   * Atualiza a visibilidade dos controles touch (joystick virtual).
-   * O joystick só aparece se:
-   *  1. O dispositivo é mobile (toque ou tela pequena)
-   *  2. A tela ativa é a tela de jogo
-   *  3. O tipo de controle selecionado é "joystick"
-   *  4. A opção "visível" está ativa
-   */
-  _updateControlVisibility() {
-    const isGameScreen = this.activeScreen === this.$gameScreen;
-    if (this.isMobile && isGameScreen && this.joyVisible && this.controlType === 'joystick') {
-      this.$touchControls.classList.remove('hidden');
-    } else {
-      this.$touchControls.classList.add('hidden');
-    }
-  }
 
   /**
    * Salva a pontuação no ranking e desabilita o botão para evitar cliques múltiplos.
@@ -221,7 +140,6 @@ export class GameEngine {
 
   /**
    * Exibe uma tela específica e oculta todas as outras.
-   * Também atualiza a visibilidade dos controles touch conforme a tela ativa.
    * @param {HTMLElement} screen - Elemento DOM da tela a ser exibida
    */
   _showScreen(screen) {
@@ -231,23 +149,6 @@ export class GameEngine {
     );
     // Ativa a tela desejada
     screen.classList.add('active');
-    
-    // Armazena referência à tela ativa para controle do joystick
-    this.activeScreen = screen;
-
-    // Atualiza visibilidade dos controles touch baseado na tela e configurações
-    this._updateControlVisibility();
-  }
-
-  /**
-   * Detecta se o usuário está em um dispositivo mobile ou touch.
-   * Verifica suporte a toque e tamanho da tela.
-   * @returns {boolean} true se for mobile/touch
-   */
-  _checkMobile() {
-    const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-    const isSmallScreen = window.innerWidth <= 800;
-    return isTouch || isSmallScreen;
   }
 
   /**
