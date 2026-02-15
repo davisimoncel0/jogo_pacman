@@ -3,16 +3,15 @@ import { DIR } from './constants.js';
 /**
  * Gerenciador de Inputs do jogo.
  * Responsável por capturar e direcionar as entradas do jogador ao Pac-Man.
- * Suporta três modos de controle:
+ * Suporta dois modos de controle:
  *  1. Teclado (setas e WASD) — para desktop
- *  2. Joystick virtual (botões touch) — para mobile
- *  3. Gestos de deslizar (swipe) — alternativa mobile sem botões
+ *  2. Gestos de deslizar (swipe) — para mobile e tablet
  */
 export class InputHandler {
 
   /**
    * Inicializa o InputHandler, registrando listeners para
-   * teclado, botões touch e gestos de swipe.
+   * teclado e gestos de swipe.
    */
   constructor() {
     /** @private Referência ao Pac-Man que está sendo controlado */
@@ -21,9 +20,8 @@ export class InputHandler {
     /** @private Se o input está habilitado (desabilitado durante transições) */
     this._enabled = false;
 
-    // Registra os três tipos de entrada
+    // Registra os dois tipos de entrada
     document.addEventListener('keydown', (e) => this._onKeyDown(e));
-    this._initTouch();
     this._initSwipe();
   }
 
@@ -99,32 +97,7 @@ export class InputHandler {
     this._enabled = enabled;
   }
 
-  /**
-   * Inicializa os controles do joystick virtual (D-pad).
-   * Mapeia cada botão touch (▲ ▼ ◀ ▶) para a direção correspondente.
-   * Usa 'pointerdown' ao invés de 'click' para resposta mais rápida no mobile.
-   */
-  _initTouch() {
-    // Mapeamento: ID do botão HTML → direção do jogo
-    const directions = {
-      'touch-up': DIR.UP,
-      'touch-down': DIR.DOWN,
-      'touch-left': DIR.LEFT,
-      'touch-right': DIR.RIGHT
-    };
 
-    Object.entries(directions).forEach(([id, dir]) => {
-      const btn = document.getElementById(id);
-      if (btn) {
-        // pointerdown dispara imediatamente ao tocar, sem esperar soltar
-        btn.addEventListener('pointerdown', (e) => {
-          if (!this._enabled || !this._pacman) return;
-          this._pacman.nextDir = dir;
-          e.preventDefault(); // Evita scroll ou zoom indesejado
-        });
-      }
-    });
-  }
 
   /**
    * Processa eventos de tecla pressionada (teclado físico).
