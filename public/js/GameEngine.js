@@ -7,17 +7,24 @@ import { InputHandler } from './InputHandler.js';
 import { RankingService } from './RankingService.js';
 
 /**
- * Main game engine — orchestrates game loop, state, collisions, and screen transitions.
+ * Motor principal do jogo Pac-Man.
+ * Orquestra o loop de jogo, gerenciamento de estado, colisões,
+ * transições de tela e controles mobile.
  */
 export class GameEngine {
+
+  /**
+   * Inicializa o motor do jogo, configurando o renderizador,
+   * os inputs, referências DOM e o estado inicial.
+   */
   constructor() {
-    // Renderer
+    // Renderizador — responsável por desenhar no Canvas
     this.renderer = new Renderer(document.getElementById('game-canvas'));
 
-    // Input
+    // Gerenciador de input — teclado, botões touch e gestos
     this.input = new InputHandler();
 
-    // DOM elements
+    // === Referências aos elementos do DOM ===
     this.$startScreen   = document.getElementById('start-screen');
     this.$gameScreen     = document.getElementById('game-screen');
     this.$prizeScreen    = document.getElementById('prize-screen');
@@ -37,45 +44,50 @@ export class GameEngine {
     this.$gameoverLevel  = document.getElementById('gameover-level-value');
     this.$rankingList    = document.getElementById('ranking-list');
     this.$touchControls  = document.getElementById('touch-controls');
+    this.$mobileConfigPanel = document.getElementById('mobile-config-panel');
 
-    // State
-    this.isMobile = this._checkMobile();
-    this.playerName = '';
-    this.score = 0;
-    this.lives = 3;
-    this.level = 0;
-    this.map = [];
-    this.dotsRemaining = 0;
-    this.gameRunning = false;
-    this.gamePaused = false;
-    this.animFrame = null;
-    this.lastTime = 0;
-    this.frightenedTimer = 0;
+    // === Estado do jogo ===
+    this.controlType = 'joystick';  // Tipo de controle ativo: 'joystick' ou 'swipe'
+    this.joyVisible = true;         // Se o joystick virtual está visível
+    this.isMobile = this._checkMobile(); // Detecta se é dispositivo mobile
+    this.playerName = '';           // Nome do jogador atual
+    this.score = 0;                 // Pontuação acumulada
+    this.lives = 3;                 // Vidas restantes
+    this.level = 0;                 // Índice da fase atual (0 = Fase 1)
+    this.map = [];                  // Mapa da fase atual (cópia profunda)
+    this.dotsRemaining = 0;         // Quantidade de dots/cerejas restantes
+    this.gameRunning = false;       // Se o jogo está ativo (loop rodando)
+    this.gamePaused = false;        // Se o jogo está pausado temporariamente
+    this.animFrame = null;          // ID do requestAnimationFrame atual
+    this.lastTime = 0;              // Timestamp do último frame para cálculo de delta
+    this.frightenedTimer = 0;       // Timer do modo assustado dos fantasmas (ms)
+    this.activeScreen = null;       // Referência à tela ativa atual
 
-    // Entities
-    this.pacman = null;
-    this.ghosts = [];
+    // === Entidades do jogo ===
+    this.pacman = null;             // Instância do Pac-Man
+    this.ghosts = [];               // Array de instâncias dos fantasmas
 
+    // Vincula todos os eventos da interface
     this._bindEvents();
   }
 
-  /** Bind all UI event listeners. */
+  /**
+   * Vincula todos os event listeners da interface do usuário.
+   * Inclui: botão jogar, ranking, salvar pontuação, configurações mobile.
+   */
   _bindEvents() {
+    // Habilita/desabilita o botão "JOGAR" conforme o nome é preenchido
     this.$playerName.addEventListener('input', () => {
       this.$btnStart.disabled = this.$playerName.value.trim().length === 0;
     });
 
-    // Usuário de teste da Antigravity
-    if (!this.$playerName.value) {
-      this.$playerName.value = 'ANTIGRAVITY';
-      this.$btnStart.disabled = false;
-    }
-
+    // Botão "JOGAR" — inicia o jogo com o nome informado
     this.$btnStart.addEventListener('click', () => {
       this.playerName = this.$playerName.value.trim();
       if (this.playerName) this.startGame();
     });
 
+    // Permite iniciar o jogo com a tecla Enter no campo de nome
     this.$playerName.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && this.$playerName.value.trim()) {
         this.playerName = this.$playerName.value.trim();
@@ -83,26 +95,122 @@ export class GameEngine {
       }
     });
 
+    // Abre o modal de ranking
     document.getElementById('btn-ranking').addEventListener('click', () => this.showRanking());
+
+    // Fecha o modal de ranking
     document.getElementById('btn-close-ranking').addEventListener('click', () => {
       this.$rankingModal.classList.add('hidden');
     });
 
+    // Botão "SALVAR" na tela de premiação (todas as fases completas)
     document.getElementById('btn-save-score').addEventListener('click', () => {
       this._saveAndDisable('btn-save-score');
     });
+
+    // Botão "JOGAR NOVAMENTE" na tela de premiação
     document.getElementById('btn-play-again').addEventListener('click', () => {
       this._showScreen(this.$startScreen);
+      // Foca o campo de nome para facilitar a digitação
+      setTimeout(() => this.$playerName.focus(), 100);
     });
+
+    // Botão "SALVAR" na tela de game over
     document.getElementById('btn-save-gameover').addEventListener('click', () => {
       this._saveAndDisable('btn-save-gameover');
     });
+
+    // Botão "TENTAR NOVAMENTE" na tela de game over
     document.getElementById('btn-retry').addEventListener('click', () => {
       this._showScreen(this.$startScreen);
+      // Foca o campo de nome para facilitar a digitação
+      setTimeout(() => this.$playerName.focus(), 100);
+    });
+
+    // === Eventos de Configuração Mobile ===
+
+    // Botão de engrenagem — abre/fecha o painel de configurações mobile
+    document.getElementById('btn-mobile-config').addEventListener('click', () => {
+      this.$mobileConfigPanel.classList.toggle('hidden');
+    });
+
+    // Botão "FECHAR" dentro do painel de configurações
+    document.getElementById('btn-close-config').addEventListener('click', () => {
+      this.$mobileConfigPanel.classList.add('hidden');
+    });
+
+    // Configura os botões de alternância (joystick/swipe, visível/oculto)
+    this._setupConfigButtons();
+  }
+
+  /**
+   * Configura os botões de alternância do painel de configurações mobile.
+   * Permite ao jogador escolher entre controle por joystick ou gestos (swipe),
+   * e se o joystick virtual deve ficar visível ou oculto.
+   */
+  _setupConfigButtons() {
+    // --- Tipo de Controle: Joystick vs Swipe ---
+    const btnJoy = document.getElementById('cfg-type-joy');
+    const btnSwipe = document.getElementById('cfg-type-swipe');
+    
+    // Ao clicar em "JOYSTICK", ativa o modo joystick e destaca o botão
+    btnJoy.addEventListener('click', () => {
+      this.controlType = 'joystick';
+      btnJoy.classList.add('active');
+      btnSwipe.classList.remove('active');
+      this._updateControlVisibility();
+    });
+    
+    // Ao clicar em "SWIPE", ativa o modo gesto e oculta o joystick
+    btnSwipe.addEventListener('click', () => {
+      this.controlType = 'swipe';
+      btnSwipe.classList.add('active');
+      btnJoy.classList.remove('active');
+      this._updateControlVisibility();
+    });
+
+    // --- Visibilidade do Joystick: Ver vs Ocultar ---
+    const btnShow = document.getElementById('cfg-joy-show');
+    const btnHide = document.getElementById('cfg-joy-hide');
+
+    // Ao clicar em "VER", torna o joystick visível (se no modo joystick)
+    btnShow.addEventListener('click', () => {
+      this.joyVisible = true;
+      btnShow.classList.add('active');
+      btnHide.classList.remove('active');
+      this._updateControlVisibility();
+    });
+
+    // Ao clicar em "OCULTAR", esconde o joystick mas mantém gestos ativos
+    btnHide.addEventListener('click', () => {
+      this.joyVisible = false;
+      btnHide.classList.add('active');
+      btnShow.classList.remove('active');
+      this._updateControlVisibility();
     });
   }
 
-  /** Save score and disable the save button. */
+  /**
+   * Atualiza a visibilidade dos controles touch (joystick virtual).
+   * O joystick só aparece se:
+   *  1. O dispositivo é mobile (toque ou tela pequena)
+   *  2. A tela ativa é a tela de jogo
+   *  3. O tipo de controle selecionado é "joystick"
+   *  4. A opção "visível" está ativa
+   */
+  _updateControlVisibility() {
+    const isGameScreen = this.activeScreen === this.$gameScreen;
+    if (this.isMobile && isGameScreen && this.joyVisible && this.controlType === 'joystick') {
+      this.$touchControls.classList.remove('hidden');
+    } else {
+      this.$touchControls.classList.add('hidden');
+    }
+  }
+
+  /**
+   * Salva a pontuação no ranking e desabilita o botão para evitar cliques múltiplos.
+   * @param {string} btnId - ID do botão de salvar (pode ser da tela prize ou gameover)
+   */
   async _saveAndDisable(btnId) {
     const btn = document.getElementById(btnId);
     btn.disabled = true;
@@ -111,29 +219,41 @@ export class GameEngine {
     this.showRanking();
   }
 
-  /** Show a screen and hide the others. */
+  /**
+   * Exibe uma tela específica e oculta todas as outras.
+   * Também atualiza a visibilidade dos controles touch conforme a tela ativa.
+   * @param {HTMLElement} screen - Elemento DOM da tela a ser exibida
+   */
   _showScreen(screen) {
+    // Oculta todas as telas removendo a classe 'active'
     [this.$startScreen, this.$gameScreen, this.$prizeScreen, this.$gameoverScreen].forEach(s =>
       s.classList.remove('active')
     );
+    // Ativa a tela desejada
     screen.classList.add('active');
     
-    // Mostra controles touch apenas no game-screen e se for mobile
-    if (this.isMobile && screen === this.$gameScreen) {
-      this.$touchControls.classList.remove('hidden');
-    } else {
-      this.$touchControls.classList.add('hidden');
-    }
+    // Armazena referência à tela ativa para controle do joystick
+    this.activeScreen = screen;
+
+    // Atualiza visibilidade dos controles touch baseado na tela e configurações
+    this._updateControlVisibility();
   }
 
-  /** Detect if user is on a mobile/touch device. */
+  /**
+   * Detecta se o usuário está em um dispositivo mobile ou touch.
+   * Verifica suporte a toque e tamanho da tela.
+   * @returns {boolean} true se for mobile/touch
+   */
   _checkMobile() {
     const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
     const isSmallScreen = window.innerWidth <= 800;
     return isTouch || isSmallScreen;
   }
 
-  /** Start a new game. */
+  /**
+   * Inicia uma nova partida do zero.
+   * Reseta pontuação, vidas e carrega a primeira fase.
+   */
   startGame() {
     this.score = 0;
     this.lives = 3;
@@ -142,13 +262,20 @@ export class GameEngine {
     this.loadLevel(this.level);
   }
 
-  /** Load a level. */
+  /**
+   * Carrega uma fase específica do jogo.
+   * Copia o mapa, conta os dots restantes, posiciona as entidades
+   * e exibe o banner de "FASE X" antes de iniciar o loop.
+   * @param {number} lvl - Índice da fase (0 = Fase 1, 5 = Fase 6)
+   */
   loadLevel(lvl) {
     this.gamePaused = true;
     this.gameRunning = false;
 
-    // Deep copy map
+    // Cópia profunda do mapa para não alterar o original
     this.map = LEVELS[lvl].map(row => [...row]);
+
+    // Conta quantos dots e power pellets existem na fase
     this.dotsRemaining = 0;
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
@@ -156,13 +283,15 @@ export class GameEngine {
       }
     }
 
+    // Reposiciona Pac-Man e fantasmas
     this._resetPositions();
     this._updateHUD();
 
-    // Show level banner
+    // Exibe o banner com o número da fase
     this.$levelBannerText.textContent = `FASE ${lvl + 1}`;
     this.$levelBanner.classList.remove('hidden');
 
+    // Após 1.5s, esconde o banner e inicia o loop de jogo
     setTimeout(() => {
       this.$levelBanner.classList.add('hidden');
       this.gameRunning = true;
@@ -174,29 +303,41 @@ export class GameEngine {
     }, 1500);
   }
 
-  /** Reset Pac-Man and ghosts to starting positions. */
+  /**
+   * Reseta as posições do Pac-Man e dos fantasmas para o início da fase.
+   * Cria novas instâncias e vincula o input ao novo Pac-Man.
+   */
   _resetPositions() {
     this.pacman = new PacMan(this.level);
     this.input.bind(this.pacman);
     this.input.setEnabled(true);
+    // Cria 4 fantasmas (índices 0-3, cada um com cor e comportamento diferente)
     this.ghosts = [0, 1, 2, 3].map(i => new Ghost(i, this.level));
   }
 
-  /** Update HUD display. */
+  /**
+   * Atualiza o HUD (Head-Up Display) com as informações atuais.
+   * Mostra pontuação formatada, número da fase e corações de vida.
+   */
   _updateHUD() {
     this.$hudScore.textContent = this.score.toLocaleString();
     this.$hudLevel.textContent = this.level + 1;
     this.$hudLives.textContent = '❤️'.repeat(Math.max(0, this.lives));
   }
 
-  /** Activate frightened mode and Pac-Man speed boost. */
+  /**
+   * Ativa o modo "assustado" (frightened) nos fantasmas.
+   * Quando o Pac-Man come uma Power Pellet (cereja grande),
+   * os fantasmas ficam vulneráveis e podem ser comidos.
+   * Também ativa o boost de velocidade do Pac-Man.
+   */
   _activateFrightened() {
     this.frightenedTimer = FRIGHTENED_DURATION;
     this.pacman.speedBoostTimer = SPEED_BOOST_DURATION;
     this.ghosts.forEach(g => {
       if (!g.eaten) {
         g.frightened = true;
-        // Only reverse direction if outside, otherwise they might get stuck in the house logic
+        // Inverte a direção dos fantasmas que já saíram da casa
         if (g.exited) {
           g.dir = { x: -g.dir.x, y: -g.dir.y };
         }
@@ -204,7 +345,12 @@ export class GameEngine {
     });
   }
 
-  /** Check for collisions between Pac-Man and ghosts. */
+  /**
+   * Verifica colisões entre o Pac-Man e cada fantasma.
+   * Se o fantasma está assustado → Pac-Man o come e ganha pontos.
+   * Se o fantasma está normal → Pac-Man perde uma vida.
+   * Usa distância euclidiana com limiar de 0.7 tiles.
+   */
   _checkCollisions() {
     this.ghosts.forEach(ghost => {
       if (!ghost.exited || ghost.eaten) return;
@@ -214,15 +360,18 @@ export class GameEngine {
 
       if (dist < TILE * 0.7) {
         if (ghost.frightened) {
+          // Fantasma assustado é comido
           ghost.eaten = true;
           ghost.frightened = false;
           this.score += SCORE_GHOST;
         } else {
+          // Pac-Man perde uma vida
           this.lives--;
           this._updateHUD();
           if (this.lives <= 0) {
             this._gameOver();
           } else {
+            // Pausa brevemente e reposiciona
             this.gamePaused = true;
             this._showMessage('OOPS!', 1000);
             setTimeout(() => {
@@ -235,7 +384,11 @@ export class GameEngine {
     });
   }
 
-  /** Check if all dots/cherries have been collected. */
+  /**
+   * Verifica se todos os dots/cerejas foram coletados na fase atual.
+   * Se sim, avança para a próxima fase ou exibe a tela de premiação.
+   * Adiciona bônus de pontuação proporcional à fase.
+   */
   _checkLevelComplete() {
     if (this.dotsRemaining <= 0) {
       this.gameRunning = false;
@@ -243,8 +396,10 @@ export class GameEngine {
       this._updateHUD();
 
       if (this.level + 1 >= TOTAL_LEVELS) {
+        // Todas as fases completas — mostra tela de premiação
         setTimeout(() => this._showPrizeScreen(), 1500);
       } else {
+        // Avança para a próxima fase
         this.level++;
         this._showMessage(`FASE ${this.level} COMPLETA!\n+${LEVEL_BONUS * this.level} BÔNUS`, 2000);
         setTimeout(() => this.loadLevel(this.level), 2500);
@@ -252,7 +407,10 @@ export class GameEngine {
     }
   }
 
-  /** Game over. */
+  /**
+   * Finaliza o jogo (Game Over).
+   * Para o loop, exibe a pontuação final e oferece opção de salvar.
+   */
   _gameOver() {
     this.gameRunning = false;
     if (this.animFrame) cancelAnimationFrame(this.animFrame);
@@ -264,11 +422,15 @@ export class GameEngine {
     setTimeout(() => this._showScreen(this.$gameoverScreen), 1000);
   }
 
-  /** Show prize screen (all levels complete). */
+  /**
+   * Exibe a tela de premiação quando o jogador completa todas as fases.
+   * Atribui um título com base na pontuação total alcançada.
+   */
   _showPrizeScreen() {
     if (this.animFrame) cancelAnimationFrame(this.animFrame);
     this.$finalScore.textContent = this.score.toLocaleString();
 
+    // Define o título com base na pontuação
     let title = '🏅 GUERREIRO DO PAC-MAN';
     if (this.score >= 15000) title = '👑 LENDA DO PAC-MAN';
     else if (this.score >= 10000) title = '⭐ GRANDE CAMPEÃO';
@@ -281,14 +443,22 @@ export class GameEngine {
     this._showScreen(this.$prizeScreen);
   }
 
-  /** Show a temporary message banner. */
+  /**
+   * Exibe uma mensagem temporária no centro da tela do jogo.
+   * Usada para "OOPS!", "FASE COMPLETA!", etc.
+   * @param {string} text - Texto da mensagem
+   * @param {number} duration - Duração em milissegundos
+   */
   _showMessage(text, duration) {
     this.$gameMessage.textContent = text;
     this.$gameMessage.classList.remove('hidden');
     setTimeout(() => this.$gameMessage.classList.add('hidden'), duration);
   }
 
-  /** Show ranking modal. */
+  /**
+   * Abre o modal de ranking e carrega os dados do servidor.
+   * Exibe um "Carregando..." enquanto busca os dados via API.
+   */
   async showRanking() {
     this.$rankingModal.classList.remove('hidden');
     this.$rankingList.innerHTML = '<p class="loading">Carregando...</p>';
@@ -296,30 +466,36 @@ export class GameEngine {
     RankingService.renderInto(this.$rankingList, rankings);
   }
 
-  /** Main game loop. */
+  /**
+   * Loop principal do jogo — chamado a cada frame via requestAnimationFrame.
+   * Calcula o delta time, atualiza todas as entidades, verifica colisões
+   * e renderiza o frame atual no Canvas.
+   * @param {number} timestamp - Timestamp fornecido pelo requestAnimationFrame
+   */
   _gameLoop(timestamp) {
     if (!this.gameRunning) return;
 
+    // Calcula delta time em segundos (limitado a 50ms para evitar saltos)
     const dt = Math.min((timestamp - this.lastTime) / 1000, 0.05);
     this.lastTime = timestamp;
 
     if (!this.gamePaused) {
-      // Update Pac-Man
+      // Atualiza a posição e o estado do Pac-Man
       const result = this.pacman.move(dt, this.map);
       this.score += result.scoreDelta;
       this.dotsRemaining -= result.dotsEaten;
       if (result.powerEaten) this._activateFrightened();
       this.pacman.updateBoost(dt);
 
-      // Update ghosts
+      // Atualiza a posição e o comportamento de cada fantasma
       const pacTile = this.pacman.getTile();
       this.ghosts.forEach(g => g.update(dt, pacTile, this.map));
 
-      // Check collisions and level complete
+      // Verifica colisões e se a fase foi completada
       this._checkCollisions();
       this._checkLevelComplete();
 
-      // Frightened timer
+      // Controla o timer do modo assustado
       if (this.frightenedTimer > 0) {
         this.frightenedTimer -= dt * 1000;
         if (this.frightenedTimer <= 0) {
@@ -331,12 +507,13 @@ export class GameEngine {
       this._updateHUD();
     }
 
-    // Render
+    // Renderiza o frame no Canvas
     this.renderer.clear();
     this.renderer.drawMap(this.map);
     this.renderer.drawPacMan(this.pacman);
     this.renderer.drawGhosts(this.ghosts, this.pacman);
 
+    // Agenda o próximo frame
     this.animFrame = requestAnimationFrame((t) => this._gameLoop(t));
   }
 }
