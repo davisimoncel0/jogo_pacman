@@ -14,7 +14,7 @@ export class Mushroom {
     this.x = 0;              // Posição X em pixels
     this.y = 0;              // Posição Y em pixels
     this.dir = DIR.NONE;     // Direção atual de movimento
-    this.speed = 2.0;        // Velocidade de movimento (fluida e visível)
+    this.speed = 0.8;        // Velocidade de movimento (lenta e suave)
     this.active = false;     // Se o cogumelo está visível e ativo no mapa
     this.lifetime = 0;       // Tempo restante de vida no mapa em ms
   }
