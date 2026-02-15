@@ -5,87 +5,101 @@ import {
 } from './constants.js';
 
 /**
- * Pac-Man player class.
+ * Classe do Pac-Man — o jogador controlável.
+ * Herda de Entity e implementa movimentação com sistema de "pré-direção",
+ * coleta de itens, animação de boca e boost de velocidade.
  */
 export class PacMan extends Entity {
+
+  /**
+   * Cria o Pac-Man na posição inicial definida nas constantes.
+   * @param {number} level - Fase atual (reservado para futuras mecânicas)
+   */
   constructor(level) {
     super(PACMAN_START.x, PACMAN_START.y);
-    this.nextDir = DIR.NONE;
-    // Constant speed
-    this.speed = 2.2;
-    this.mouthOpen = 0;
-    this.mouthDir = 1;
-    this.speedBoostTimer = 0;
+    this.nextDir = DIR.NONE;      // Próxima direção desejada (input do jogador)
+    this.speed = 2.2;             // Velocidade constante do Pac-Man
+    this.mouthOpen = 0;           // Estado da animação da boca (0 = fechada, 1 = aberta)
+    this.mouthDir = 1;            // Sentido da animação (1 = abrindo, -1 = fechando)
+    this.speedBoostTimer = 0;     // Tempo restante do boost de velocidade (ms)
   }
 
-  /** Reset to starting position. */
+  /**
+   * Reseta o Pac-Man para a posição inicial da fase.
+   * Chamado quando perde uma vida ou inicia nova fase.
+   * @param {number} level - Fase atual
+   */
   reset(level) {
     this.x = PACMAN_START.x * TILE + TILE / 2;
     this.y = PACMAN_START.y * TILE + TILE / 2;
     this.dir = DIR.NONE;
     this.nextDir = DIR.NONE;
-    // Constant speed for Pac-Man to match Ghosts
-    this.speed = 2.2; 
+    this.speed = 2.2;
     this.mouthOpen = 0;
     this.mouthDir = 1;
   }
 
   /**
-   * Move Pac-Man and collect items.
-   * @param {number} dt - Delta time in seconds
-   * @param {number[][]} map - Current level map
+   * Move o Pac-Man e coleta itens no caminho.
+   * 
+   * Sistema de movimento:
+   * 1. Calcula o deslocamento com base na direção e velocidade
+   * 2. Quando passa pelo centro de um tile, tenta virar para nextDir
+   * 3. Se nextDir não for possível, continua reto (ou para se tiver parede)
+   * 4. Após mover, verifica se coletou dots ou cerejas de poder
+   * 
+   * @param {number} dt - Delta time em segundos
+   * @param {number[][]} map - Mapa da fase atual
    * @returns {{ scoreDelta: number, dotsEaten: number, powerEaten: boolean }}
    */
   move(dt, map) {
-    // Check if stopped
+    // Se está completamente parado, não faz nada
     if (this.dir === DIR.NONE && this.nextDir === DIR.NONE) {
       return { scoreDelta: 0, dotsEaten: 0, powerEaten: false };
     }
 
-    // Speed with boost
+    // Calcula velocidade com boost (1.5x) se ativo
     let currentSpeed = this.speed;
     if (this.speedBoostTimer > 0) currentSpeed *= 1.5;
     const speed = currentSpeed * dt * 60;
 
-    // Calculate move distance based on current direction
+    // Deslocamento baseado na direção atual
     const moveX = this.dir.x * speed;
     const moveY = this.dir.y * speed;
 
-    // Current position details
+    // Identifica o tile atual e seu centro em pixels
     const tile = this.getTile();
     const centerX = tile.x * TILE + TILE / 2;
     const centerY = tile.y * TILE + TILE / 2;
 
-    // Check if we overshoot the center in this frame
+    // Verifica se o Pac-Man passou pelo centro do tile neste frame
+    // Isso é crucial para determinar quando ele pode mudar de direção
     let passedCenter = false;
     
-    // Only check overshoots if we are actually moving in a direction
     if (this.dir.x > 0 && this.x < centerX && (this.x + moveX) >= centerX) passedCenter = true;
     else if (this.dir.x < 0 && this.x > centerX && (this.x + moveX) <= centerX) passedCenter = true;
     else if (this.dir.y > 0 && this.y < centerY && (this.y + moveY) >= centerY) passedCenter = true;
     else if (this.dir.y < 0 && this.y > centerY && (this.y + moveY) <= centerY) passedCenter = true;
 
-    // Also consider cases where we are practically AT the center (within minimal tolerance)
+    // Caso especial: já está no centro (tolerância de 2px)
     if (!passedCenter && this.isAtTileCenter()) {
-       // Only force center logic if we actually intend to change direction or might hit a wall
-       // Otherwise, let him pass freely to avoid getting stuck
        const tile = this.getTile();
        const ftx = tile.x + this.dir.x;
        const fty = tile.y + this.dir.y;
        
-       // If we have a nextDir pending, OR if the wall ahead is blocked, we MUST snap to center
+       // Força lógica de centro se tem mudança de direção pendente ou parede à frente
        if (this.nextDir !== DIR.NONE || !PacMan.isWalkable(ftx, fty, map)) {
            passedCenter = true;
        }
     }
 
     if (passedCenter) {
-      // Snap to center first to execute precise turn
+      // Encaixa no centro para executar curva precisa
       this.x = centerX;
       this.y = centerY;
 
-      // Try to turn to nextDir
-      const tile = this.getTile(); // Refresh tile just in case
+      // Tenta virar para a direção desejada (nextDir)
+      const tile = this.getTile();
       const inTunnel = tile.x < 0 || tile.x >= COLS;
       let turned = false;
 
@@ -94,66 +108,68 @@ export class PacMan extends Entity {
         const nty = tile.y + this.nextDir.y;
         if (PacMan.isWalkable(ntx, nty, map)) {
           this.dir = this.nextDir;
-          this.nextDir = DIR.NONE; // Direction consumed
+          this.nextDir = DIR.NONE; // Direção consumida
           turned = true;
         }
       }
 
-      // If didn't turn, check if we can continue straight
+      // Se não virou, verifica se pode continuar reto
       if (!turned) {
         const ftx = tile.x + this.dir.x;
         const fty = tile.y + this.dir.y;
         if (!PacMan.isWalkable(ftx, fty, map)) {
-           // Hit a wall, stop dead
+           // Parede à frente — para completamente
            this.dir = DIR.NONE;
         }
       }
       
-      // If we are still moving (either turned or continued straight), apply the remaining movement
-      // This is crucial to prevent "stuttering" or getting stuck at center
+      // Se ainda está se movendo, aplica velocidade do frame
       if (this.dir !== DIR.NONE) {
-          const remSpeed = speed; // Simplification: just apply full speed for this frame to avoid complexity
-          this.x += this.dir.x * remSpeed;
-          this.y += this.dir.y * remSpeed;
+          this.x += this.dir.x * speed;
+          this.y += this.dir.y * speed;
       }
     } else {
-      // Not at center, just apply movement
+      // Não está no centro — aplica movimento normalmente
       this.x += moveX;
       this.y += moveY;
     }
     
+    // Verifica teleporte pelos túneis laterais
     this.tunnelWrap();
 
-    // Mouth animation
+    // Animação da boca (abre e fecha ciclicamente)
     this.mouthOpen += this.mouthDir * 0.15;
     if (this.mouthOpen > 1) { this.mouthOpen = 1; this.mouthDir = -1; }
     if (this.mouthOpen < 0) { this.mouthOpen = 0; this.mouthDir = 1; }
 
-    // Collect items logic
+    // === Coleta de Itens ===
     let scoreDelta = 0;
     let dotsEaten = 0;
     let powerEaten = false;
 
-    // Re-calculate tile after movement
     const newTile = this.getTile();
     if (newTile.x >= 0 && newTile.x < COLS && newTile.y >= 0 && newTile.y < ROWS) {
       const cell = map[newTile.y][newTile.x];
       if (cell === DOT) {
-        map[newTile.y][newTile.x] = EMPTY;
+        map[newTile.y][newTile.x] = EMPTY;  // Remove o dot do mapa
         scoreDelta += SCORE_CHERRY;
         dotsEaten++;
       } else if (cell === POWER) {
-        map[newTile.y][newTile.x] = EMPTY;
+        map[newTile.y][newTile.x] = EMPTY;  // Remove a cereja do mapa
         scoreDelta += SCORE_POWER;
         dotsEaten++;
-        powerEaten = true;
+        powerEaten = true; // Sinaliza para ativar modo assustado
       }
     }
 
     return { scoreDelta, dotsEaten, powerEaten };
   }
 
-  /** Update speed boost timer. */
+  /**
+   * Atualiza o timer do boost de velocidade.
+   * O boost é ativado ao comer uma cereja de poder e diminui com o tempo.
+   * @param {number} dt - Delta time em segundos
+   */
   updateBoost(dt) {
     if (this.speedBoostTimer > 0) {
       this.speedBoostTimer -= dt * 1000;
@@ -161,13 +177,21 @@ export class PacMan extends Entity {
     }
   }
 
-  /** Check if a tile is walkable for Pac-Man. */
+  /**
+   * Verifica se um tile é transitável para o Pac-Man.
+   * O Pac-Man pode andar em espaços vazios, dots, cerejas e túneis.
+   * NÃO pode atravessar paredes nem a porta dos fantasmas.
+   * @param {number} tx - Coluna do tile
+   * @param {number} ty - Linha do tile
+   * @param {number[][]} map - Mapa atual
+   * @returns {boolean} true se o tile é transitável
+   */
   static isWalkable(tx, ty, map) {
-    if (tx < 0 || tx >= COLS) return true; // tunnel
-    if (ty < 0 || ty >= ROWS) return false;
+    if (tx < 0 || tx >= COLS) return true;   // Túnel (passagem lateral)
+    if (ty < 0 || ty >= ROWS) return false;  // Fora do mapa
     const cell = map[ty][tx];
     if (cell === WALL) return false;
-    if (cell === GHOST_DOOR) return false; // Pac-Man can't pass ghost door
+    if (cell === GHOST_DOOR) return false;   // Pac-Man não entra na casa dos fantasmas
     return true;
   }
 }
