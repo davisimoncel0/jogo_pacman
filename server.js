@@ -236,12 +236,17 @@ const server = http.createServer(async (req, res) => {
   serveStatic(req, res);
 });
 
-// Start server
-server.listen(PORT, async () => {
-  console.log(`🎮 Servidor PAC-MAN rodando em http://localhost:${PORT}`);
-  console.log(`📂 Arquivos estáticos: ${PUBLIC_DIR}`);
-  console.log(`🔥 Hot Reload: Ativo para todo o projeto`);
-  
-  await verifyDatabase();
-});
+// Export server for serverless environments
+module.exports = server;
+
+// Start server only if not in Netlify environment
+if (!process.env.NETLIFY) {
+  server.listen(PORT, async () => {
+    console.log(`🎮 Servidor PAC-MAN rodando em http://localhost:${PORT}`);
+    console.log(`📂 Arquivos estáticos: ${PUBLIC_DIR}`);
+    console.log(`🔥 Hot Reload: Ativo para todo o projeto`);
+    
+    await verifyDatabase();
+  });
+}
 
