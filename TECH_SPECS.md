@@ -53,6 +53,10 @@ Este projeto é uma implementação do clássico jogo Pac-Man utilizando tecnolo
     *   `GET /api/rankings/test`: Validação de conectividade com MongoDB.
     *   Database: `pacman`
     *   Collection: `ranking`
+    *   **Acesso de Rede (IP Access List)**:
+        - Para que o servidor (local ou Netlify) consiga conectar ao MongoDB Atlas, é necessário configurar a "IP Access List" no painel da MongoDB.
+        - **Configuração Recomendada**: Adicione o IP `0.0.0.0/0` (permitir acesso de qualquer lugar) para garantir que as Netlify Functions consigam conectar, já que os IPs do Netlify são dinâmicos.
+        - **Segurança**: Utilize apenas credenciais de usuário com permissões restritas à collection de ranking em produção.
     *   Lógica de Upsert: Os usuários são identificados pelo nome (em CAIXA ALTA). Se o novo Score for maior que o existente, o registro é atualizado (`$max`).
     *   Schema (Documento):
         ```json
