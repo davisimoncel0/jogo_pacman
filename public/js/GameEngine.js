@@ -1,7 +1,8 @@
-import { TILE, ROWS, COLS, DOT, POWER, SCORE_GHOST, LEVEL_BONUS, TOTAL_LEVELS, FRIGHTENED_DURATION, SPEED_BOOST_DURATION } from './constants.js';
+import { TILE, ROWS, COLS, DOT, POWER, SCORE_GHOST, LEVEL_BONUS, TOTAL_LEVELS, FRIGHTENED_DURATION, SPEED_BOOST_DURATION, MUSHROOM_SPAWN_INTERVAL_MIN, MUSHROOM_SPAWN_INTERVAL_MAX, MUSHROOM_LIFETIME, MUSHROOM_DURATION, SCORE_MUSHROOM } from './constants.js';
 import { LEVELS } from './levels.js';
 import { PacMan } from './PacMan.js';
 import { Ghost } from './Ghost.js';
+import { Mushroom } from './Mushroom.js';
 import { Renderer } from './Renderer.js';
 import { InputHandler } from './InputHandler.js';
 import { RankingService } from './RankingService.js';
@@ -61,6 +62,8 @@ export class GameEngine {
     // === Entidades do jogo ===
     this.pacman = null;             // Instância do Pac-Man
     this.ghosts = [];               // Array de instâncias dos fantasmas
+    this.mushroom = new Mushroom(); // Cogumelo brilhante (power-up especial)
+    this.mushroomSpawnTimer = 0;    // Timer para próximo spawn do cogumelo (ms)
 
     // Vincula todos os eventos da interface
     this._bindEvents();
@@ -173,6 +176,9 @@ export class GameEngine {
     this.gamePaused = true;
     this.gameRunning = false;
 
+    // Reseta as vidas a cada nova fase
+    this.lives = 3;
+
     // Cópia profunda do mapa para não alterar o original
     this.map = LEVELS[lvl].map(row => [...row]);
 
@@ -198,6 +204,8 @@ export class GameEngine {
       this.gameRunning = true;
       this.gamePaused = false;
       this.frightenedTimer = 0;
+      this.mushroom.deactivate();
+      this.mushroomSpawnTimer = this._randomMushroomInterval();
       this.lastTime = performance.now();
       if (this.animFrame) cancelAnimationFrame(this.animFrame);
       this.animFrame = requestAnimationFrame((t) => this._gameLoop(t));
@@ -244,6 +252,53 @@ export class GameEngine {
         }
       }
     });
+  }
+
+  /**
+   * Ativa o efeito do cogumelo brilhante no Pac-Man.
+   * Concede super velocidade (2x), efeito visual colorido
+   * e ativa o modo assustado nos fantasmas (permite comê-los)
+   * por uma duração maior que a cereja.
+   */
+  _activateMushroomPower() {
+    this.pacman.mushroomPowerTimer = MUSHROOM_DURATION;
+    this.pacman.mushroomPower = true;
+
+    // Ativa modo assustado nos fantasmas (mesma lógica da cereja, mas com duração do cogumelo)
+    this.frightenedTimer = MUSHROOM_DURATION;
+    this.ghosts.forEach(g => {
+      if (!g.eaten) {
+        g.frightened = true;
+        if (g.exited) {
+          g.dir = { x: -g.dir.x, y: -g.dir.y };
+        }
+      }
+    });
+  }
+
+  /**
+   * Retorna um intervalo aleatório para o próximo spawn do cogumelo.
+   * @returns {number} Intervalo em ms
+   */
+  _randomMushroomInterval() {
+    return MUSHROOM_SPAWN_INTERVAL_MIN + Math.random() * (MUSHROOM_SPAWN_INTERVAL_MAX - MUSHROOM_SPAWN_INTERVAL_MIN);
+  }
+
+  /**
+   * Verifica colisão entre o Pac-Man e o cogumelo ativo.
+   * Se estão próximos o suficiente, ativa o efeito do cogumelo.
+   */
+  _checkMushroomCollision() {
+    if (!this.mushroom.active) return;
+    const dx = this.pacman.x - this.mushroom.x;
+    const dy = this.pacman.y - this.mushroom.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist < TILE * 0.7) {
+      this.mushroom.deactivate();
+      this.score += SCORE_MUSHROOM;
+      this._activateMushroomPower();
+    }
   }
 
   /**
@@ -387,13 +442,25 @@ export class GameEngine {
       this.dotsRemaining -= result.dotsEaten;
       if (result.powerEaten) this._activateFrightened();
       this.pacman.updateBoost(dt);
+      this.pacman.updateMushroomPower(dt);
 
       // Atualiza a posição e o comportamento de cada fantasma
       const pacTile = this.pacman.getTile();
       this.ghosts.forEach(g => g.update(dt, pacTile, this.map));
 
+      // Atualiza o cogumelo brilhante (spawn e movimento)
+      this.mushroomSpawnTimer -= dt * 1000;
+      if (this.mushroomSpawnTimer <= 0 && !this.mushroom.active) {
+        this.mushroom.spawn(this.map, MUSHROOM_LIFETIME);
+        this.mushroomSpawnTimer = this._randomMushroomInterval();
+      }
+      if (this.mushroom.active) {
+        this.mushroom.update(dt, this.map);
+      }
+
       // Verifica colisões e se a fase foi completada
       this._checkCollisions();
+      this._checkMushroomCollision();
       this._checkLevelComplete();
 
       // Controla o timer do modo assustado
@@ -411,6 +478,9 @@ export class GameEngine {
     // Renderiza o frame no Canvas
     this.renderer.clear();
     this.renderer.drawMap(this.map);
+    if (this.mushroom.active) {
+      this.renderer.drawMushroom(this.mushroom);
+    }
     this.renderer.drawPacMan(this.pacman);
     this.renderer.drawGhosts(this.ghosts, this.pacman);
 
