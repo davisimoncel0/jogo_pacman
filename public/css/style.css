@@ -383,12 +383,7 @@ body {
   margin-bottom: 16px;
 }
 
-/* Esconde botão de configuração mobile em telas desktop */
-@media (min-width: 801px) {
-  .mobile-config-toggle {
-    display: none;
-  }
-}
+
 
 .hud-item {
   display: flex;
@@ -441,12 +436,7 @@ body {
   }
 }
 
-/* Oculta os controles touch em desktop */
-@media (min-width: 801px) {
-  .touch-controls {
-    display: none !important;
-  }
-}
+
 
 .level-banner {
   position: fixed;
@@ -763,135 +753,12 @@ body {
   background: rgba(255, 255, 255, 0.1);
   border-radius: 3px;
 }
-/* ======== RESPONSIVITY & TOUCH CONTROLS ======== */
+/* MEDIA QUERIES */
 
-.touch-controls {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  margin-top: 20px;
-  width: 100%;
-  user-select: none;
-}
-
-.touch-controls.hidden {
-  display: none;
-}
-
-.control-row {
-  display: flex;
-  gap: 15px;
-  align-items: center;
-}
-
-.touch-btn {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: var(--glass-bg);
-  border: 2px solid var(--glass-border);
-  color: var(--neon-blue);
-  font-size: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 0 15px rgba(0, 212, 255, 0.1);
-  -webkit-tap-highlight-color: transparent;
-}
-
-.touch-btn:active {
-  transform: scale(0.9);
-  background: rgba(0, 212, 255, 0.2);
-  border-color: var(--neon-blue);
-  box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
-}
-
-.touch-spacer {
-  width: 60px;
-}
 
 /* MEDIA QUERIES */
 
-/* ======== MOBILE CONFIG PANEL ======== */
 
-.btn-icon {
-  background: none;
-  border: none;
-  font-size: 20px;
-  cursor: pointer;
-  padding: 5px;
-  filter: drop-shadow(0 0 5px var(--neon-blue));
-}
-
-.mobile-panel {
-  position: absolute;
-  top: 80px;
-  right: 20px;
-  background: var(--bg-card);
-  backdrop-filter: blur(20px);
-  border: 1px solid var(--glass-border);
-  padding: 20px;
-  border-radius: 16px;
-  z-index: 150;
-  width: 200px;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  box-shadow: var(--shadow-glow);
-  animation: fadeIn 0.3s ease;
-}
-
-.mobile-panel.hidden {
-  display: none;
-}
-
-.mobile-panel h3 {
-  font-family: "Press Start 2P", monospace;
-  font-size: 10px;
-  color: var(--neon-yellow);
-  text-align: center;
-}
-
-.config-row {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  font-size: 12px;
-}
-
-.toggle-group {
-  display: flex;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  padding: 3px;
-}
-
-.cfg-btn {
-  flex: 1;
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  font-size: 9px;
-  font-family: "Press Start 2P", monospace;
-  padding: 8px 4px;
-  cursor: pointer;
-  border-radius: 6px;
-  transition: all 0.2s;
-}
-
-.cfg-btn.active {
-  background: var(--neon-blue);
-  color: white;
-  box-shadow: 0 0 10px rgba(0, 212, 255, 0.4);
-}
-
-.btn-sm {
-  padding: 10px;
-  font-size: 8px;
-}
 
 /* ======== RESPONSIVIDADE PARA TELAS PEQUENAS ======== */
 
@@ -1003,43 +870,6 @@ body {
     font-size: 11px;
     width: 85%;
     padding: 10px;
-  }
-
-  /* === CONTROLES TOUCH — maiores e mais acessíveis === */
-  .touch-controls {
-    margin-top: 14px;
-    gap: 8px;
-  }
-
-  .touch-btn {
-    width: 58px;
-    height: 58px;
-    font-size: 22px;
-  }
-
-  .touch-spacer {
-    width: 58px;
-  }
-
-  .control-row {
-    gap: 12px;
-  }
-
-  /* === PAINEL DE CONFIGURAÇÕES === */
-  .mobile-panel {
-    top: 60px;
-    right: 10px;
-    padding: 16px;
-    width: 190px;
-  }
-
-  .mobile-panel h3 {
-    font-size: 9px;
-  }
-
-  .cfg-btn {
-    font-size: 8px;
-    padding: 7px 4px;
   }
 
   /* === TELAS DE RESULTADOS — centralizadas e maiores === */
@@ -1158,15 +988,6 @@ body {
     font-size: 10px;
   }
 
-  .touch-btn {
-    width: 50px;
-    height: 50px;
-    font-size: 20px;
-  }
-
-  .touch-spacer {
-    width: 50px;
-  }
 
   .btn {
     font-size: 9px;
@@ -1286,23 +1107,6 @@ body {
     border-radius: 4px;
   }
 
-  /* ========= CONTROLES TOUCH EM LANDSCAPE ========= */
-  .touch-controls {
-    flex-direction: row;
-    gap: 12px;
-    margin-top: 4px;
-    padding: 0;
-  }
-
-  .touch-btn {
-    width: 42px;
-    height: 42px;
-    font-size: 16px;
-  }
-
-  .touch-spacer {
-    width: 42px;
-  }
 
   /* ========= TELAS DE RESULTADO EM LANDSCAPE ========= */
   .prize-container,
