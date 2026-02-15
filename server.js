@@ -21,9 +21,32 @@ async function getDb() {
     }
     dbClient = new MongoClient(uri);
     await dbClient.connect();
-    console.log('🔌 Conectado ao MongoDB');
+    console.log('🔌 Conexão com MongoDB estabelecida com sucesso');
   }
   return dbClient.db('pacman').collection('ranking');
+}
+
+/**
+ * Verify database connectivity on startup
+ */
+async function verifyDatabase() {
+  console.log('🔍 Testando conexão com o Banco de Dados...');
+  try {
+    const dbName = 'pacman';
+    const collectionName = 'ranking';
+    
+    // getDb() handles connecting and returns the collection
+    const collection = await getDb();
+    const count = await collection.countDocuments();
+    
+    console.log(`✅ Conexão com MongoDB: OK`);
+    console.log(`📂 Banco de Dados: "${dbName}" encontrado`);
+    console.log(`📊 Coleção: "${collectionName}" acessível com ${count} registros`);
+  } catch (err) {
+    console.error('❌ FALHA CRÍTICA: Erro ao acessar o banco ou coleção.');
+    console.error(`DETALHES: ${err.message}`);
+    process.exit(1);
+  }
 }
 
 // MIME types for static file serving
@@ -84,9 +107,25 @@ function serveStatic(req, res) {
 // SSE Clients for Hot Reload
 let clients = [];
 
-fs.watch(PUBLIC_DIR, { recursive: true }, (eventType, filename) => {
+// Watch project root for changes
+fs.watch(ROOT_DIR, { recursive: true }, (eventType, filename) => {
+  // Ignore unnecessary directories and hidden files
+  if (filename && (
+    filename.startsWith('node_modules') || 
+    filename.startsWith('.git') || 
+    filename.startsWith('.netlify') ||
+    filename.includes('.db') ||
+    filename === '.env'
+  )) return;
+
   console.log(`🔄 Arquivo alterado: ${filename}`);
-  clients.forEach(client => client.res.write(`data: reload\n\n`));
+  clients.forEach(client => {
+    try {
+      client.res.write(`data: reload\n\n`);
+    } catch (e) {
+      // client might be closed
+    }
+  });
 });
 
 // Create HTTP server
@@ -101,6 +140,27 @@ const server = http.createServer(async (req, res) => {
       'Access-Control-Allow-Headers': 'Content-Type',
     });
     res.end();
+    return;
+  }
+
+  // API: GET database test
+  if (req.method === 'GET' && url.pathname === '/api/test') {
+    try {
+      const startTime = Date.now();
+      const collection = await getDb();
+      await collection.countDocuments(); // Simple ping
+      const latency = Date.now() - startTime;
+      
+      sendJSON(res, 200, {
+        status: 'ok',
+        database: 'MongoDB Atlas',
+        latency: `${latency}ms`,
+        collection: 'ranking',
+        timestamp: new Date().toISOString()
+      });
+    } catch (e) {
+      sendJSON(res, 500, { status: 'error', error: e.message });
+    }
     return;
   }
 
@@ -177,9 +237,11 @@ const server = http.createServer(async (req, res) => {
 });
 
 // Start server
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
   console.log(`🎮 Servidor PAC-MAN rodando em http://localhost:${PORT}`);
   console.log(`📂 Arquivos estáticos: ${PUBLIC_DIR}`);
-  console.log(`🔥 Hot Reload: Ativo para a pasta public`);
+  console.log(`🔥 Hot Reload: Ativo para todo o projeto`);
+  
+  await verifyDatabase();
 });
 
