@@ -9,16 +9,17 @@ const ROOT_DIR = __dirname;
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
 // MongoDB Configuration
-const MONGODB_URI = process.env.MONGODB_URI;
 let dbClient;
 
 async function getDb() {
   if (!dbClient) {
-    if (!MONGODB_URI) {
-      console.error('❌ MONGODB_URI não encontrado. Por favor, defina a variável de ambiente.');
+    const uri = process.env.MONGODB_URI;
+    if (!uri) {
+      console.error('❌ MONGODB_URI não encontrado no arquivo .env ou no ambiente.');
+      console.log('💡 DICA: Verifique se o arquivo .env existe na raiz do projeto e contém a chave MONGODB_URI.');
       process.exit(1);
     }
-    dbClient = new MongoClient(MONGODB_URI);
+    dbClient = new MongoClient(uri);
     await dbClient.connect();
     console.log('🔌 Conectado ao MongoDB');
   }
