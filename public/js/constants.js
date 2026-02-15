@@ -44,6 +44,14 @@ export const FRIGHTENED_DURATION = 7000;    // Duração do modo assustado em ms
 export const SPEED_BOOST_DURATION = 5000;   // Duração do boost de velocidade do Pac-Man em ms
 export const TOTAL_LEVELS = 6;              // Total de fases no jogo
 
+// === Cogumelo Brilhante (Power-Up Especial) ===
+export const MUSHROOM_DURATION = 12000;              // Duração do efeito do cogumelo em ms (maior que a cereja)
+export const MUSHROOM_SPEED_MULTIPLIER = 2.0;        // Multiplicador de velocidade do Pac-Man com cogumelo
+export const MUSHROOM_SPAWN_INTERVAL_MIN = 15000;    // Intervalo mínimo entre spawns do cogumelo em ms
+export const MUSHROOM_SPAWN_INTERVAL_MAX = 30000;    // Intervalo máximo entre spawns do cogumelo em ms
+export const MUSHROOM_LIFETIME = 8000;               // Tempo que o cogumelo fica visível no mapa em ms
+export const SCORE_MUSHROOM = 100;                   // Pontos por comer o cogumelo
+
 // === Posições Iniciais (Coordenadas de Tile) ===
 export const PACMAN_START = { x: 10, y: 15 }; // Posição inicial do Pac-Man
 
