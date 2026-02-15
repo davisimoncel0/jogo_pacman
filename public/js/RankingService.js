@@ -3,10 +3,8 @@
  * Includes fallback to localStorage if the API is unavailable (e.g., static hosting).
  */
 export class RankingService {
-  static LOCAL_STORAGE_KEY = 'pacman_rankings';
-
   /**
-   * Save a player's score. Tries API first, falls back to localStorage.
+   * Save a player's score to the API.
    * @param {string} name - Player name
    * @param {number} score - Final score
    * @param {number} level - Level reached
@@ -21,26 +19,29 @@ export class RankingService {
         body: JSON.stringify(data),
       });
       
-      if (!response.ok) throw new Error('API Error');
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || 'Erro ao salvar no banco de dados');
+      }
     } catch (err) {
-      console.warn('API unavailable, saving to localStorage:', err);
-      this._saveLocal(data);
+      console.error('Falha ao salvar ranking no MongoDB:', err);
+      alert('Não foi possível salvar seu recorde no ranking global: ' + err.message);
     }
   }
 
   /**
-   * Load top rankings. Tries API first, falls back to localStorage.
-   * @returns {Promise<Array<{ id: number, name: string, score: number, level: number, date: string }>>}
+   * Load top rankings from the API.
+   * @returns {Promise<Array<{ name: string, score: number, level: number, date: string }>>}
    */
   static async load() {
     try {
       const res = await fetch('/api/rankings');
-      if (!res.ok) throw new Error('API Error');
+      if (!res.ok) throw new Error('Erro ao carregar rankings');
       const data = await res.json();
       return Array.isArray(data) ? data : [];
     } catch (err) {
-      console.warn('API unavailable, loading from localStorage:', err);
-      return this._loadLocal();
+      console.error('Falha ao carregar ranking do MongoDB:', err);
+      return [];
     }
   }
 
@@ -51,7 +52,7 @@ export class RankingService {
    */
   static renderInto(container, rankings) {
     if (!rankings || rankings.length === 0) {
-      container.innerHTML = '<p class="ranking-empty">Nenhum score registrado ainda.</p>';
+      container.innerHTML = '<p class="ranking-empty">Nenhum recorde global registrado ainda.</p>';
       return;
     }
 
@@ -68,30 +69,5 @@ export class RankingService {
         </div>
       `;
     }).join('');
-  }
-
-  /* Private LocalStorage Helpers */
-
-  static _saveLocal(newEntry) {
-    const current = this._loadLocal();
-    current.push(newEntry);
-    
-    // Sort by score descending
-    current.sort((a, b) => b.score - a.score);
-    
-    // Keep top 10
-    const top10 = current.slice(0, 10);
-    
-    localStorage.setItem(this.LOCAL_STORAGE_KEY, JSON.stringify(top10));
-  }
-
-  static _loadLocal() {
-    try {
-      const raw = localStorage.getItem(this.LOCAL_STORAGE_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch (e) {
-      console.error('LocalStorage error:', e);
-      return [];
-    }
   }
 }
