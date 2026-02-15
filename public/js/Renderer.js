@@ -113,8 +113,8 @@ export class Renderer {
    */
   _drawCherry(x, y) {
     const ctx = this.ctx;
-    // Mesma cor dos dots, raio um pouco maior (4.5 vs 2.5 dos dots)
-    ctx.fillStyle = '#ffcc66';
+    // Tom de amarelo mais claro que os dots para destaque sutil
+    ctx.fillStyle = '#ffe599';
     ctx.beginPath();
     ctx.arc(x + TILE / 2, y + TILE / 2, 4.5, 0, Math.PI * 2);
     ctx.fill();
