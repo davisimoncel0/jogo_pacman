@@ -7,7 +7,7 @@
 // === Dimensões do Grid e Canvas ===
 export const TILE = 24;              // Tamanho de cada tile em pixels
 export const COLS = 21;              // Número de colunas do labirinto
-export const ROWS = 23;              // Número de linhas do labirinto
+export const ROWS = 21;              // Número de linhas do labirinto
 export const CANVAS_W = COLS * TILE; // Largura total do Canvas em pixels
 export const CANVAS_H = ROWS * TILE; // Altura total do Canvas em pixels
 
