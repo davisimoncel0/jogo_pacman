@@ -249,10 +249,12 @@ export class Renderer {
   /**
    * Desenha todos os fantasmas na tela.
    * Fantasmas comidos são renderizados apenas como olhos flutuantes.
+   * Quando faltam ≤2s do modo assustado, piscam entre branco e azul.
    * @param {import('./Ghost.js').Ghost[]} ghosts - Array de fantasmas
    * @param {import('./PacMan.js').PacMan} pacman - Para que os olhos olhem pro Pac-Man
+   * @param {number} frightenedTimer - Timer restante do modo assustado (ms)
    */
-  drawGhosts(ghosts, pacman) {
+  drawGhosts(ghosts, pacman, frightenedTimer = 0) {
     ghosts.forEach(ghost => {
       if (ghost.eaten) {
         // Fantasma comido — só olhos voltando para casa
@@ -260,8 +262,20 @@ export class Renderer {
         return;
       }
 
-      // Fantasma normal ou assustado
-      const color = ghost.frightened ? FRIGHTENED_COLOR : ghost.color;
+      let color;
+      if (ghost.frightened) {
+        // Piscar branco/azul quando faltam ≤2 segundos
+        if (frightenedTimer > 0 && frightenedTimer <= 2000) {
+          // Alterna a cada ~200ms entre branco e azul
+          const flash = Math.floor(frightenedTimer / 200) % 2 === 0;
+          color = flash ? '#ffffff' : FRIGHTENED_COLOR;
+        } else {
+          color = FRIGHTENED_COLOR;
+        }
+      } else {
+        color = ghost.color;
+      }
+
       this._drawGhostBody(ghost, color, pacman);
     });
   }

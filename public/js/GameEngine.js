@@ -316,9 +316,8 @@ export class GameEngine {
 
       if (dist < TILE * 0.7) {
         if (ghost.frightened) {
-          // Fantasma assustado é comido
+          // Fantasma assustado é comido — volta para a casa como olhos
           ghost.eaten = true;
-          ghost.frightened = false;
           this.score += SCORE_GHOST;
         } else {
           // Pac-Man perde uma vida
@@ -469,6 +468,13 @@ export class GameEngine {
         if (this.frightenedTimer <= 0) {
           this.frightenedTimer = 0;
           this.ghosts.forEach(g => g.frightened = false);
+        } else {
+          // Reativa frightened em fantasmas que saíram da casa durante o timer ativo
+          this.ghosts.forEach(g => {
+            if (g.exited && !g.eaten && !g.frightened) {
+              g.frightened = true;
+            }
+          });
         }
       }
 
@@ -482,7 +488,7 @@ export class GameEngine {
       this.renderer.drawMushroom(this.mushroom);
     }
     this.renderer.drawPacMan(this.pacman);
-    this.renderer.drawGhosts(this.ghosts, this.pacman);
+    this.renderer.drawGhosts(this.ghosts, this.pacman, this.frightenedTimer);
 
     // Agenda o próximo frame
     this.animFrame = requestAnimationFrame((t) => this._gameLoop(t));
