@@ -152,7 +152,7 @@ export class Ghost extends Entity {
       this.frightened = false;
       this.exited = false;
       this.exiting = false;
-      this.exitTimer = 3000; // Espera 3s antes de sair novamente
+      this.exitTimer = 1500; // Retorna rápido (1.5s) para poder ser comido de novo
       this.x = hx;
       this.y = hy;
       this.dir = DIR.UP;
