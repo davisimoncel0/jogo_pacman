@@ -43,11 +43,14 @@ Este projeto é uma implementação do clássico jogo Pac-Man utilizando tecnolo
 │       └── RankingService.js # Comunicação com a API de rankings (com fallback para LocalStorage)
 ```
 
-### 3.2. Backend (`server.js`)
-*   **Responsabilidade**: Servir arquivos estáticos da pasta `public` e fornecer uma API REST simples para manipulação do ranking.
+### 3.2. Backend (`server.js` e `routes/`)
+*   **Responsabilidade**: Servir arquivos estáticos, gerenciar middleware de segurança (CORS, JSON) e orquestrar rotas.
+*   **Independência de Hosting**: O código foi estruturado para rodar localmente ou em provedores serverless (Netlify, Vercel), exportando o objeto `app` do Express.
 *   **Endpoints API**:
-    *   `GET /api/rankings`: Retorna as top 10 pontuações em formato JSON.
-    *   `POST /api/rankings`: Recebe `{ name, score, level }` e salva no banco de dados. Valida dados de entrada.
+    *   `GET /api/rankings`: Retorna as top 10 pontuações.
+    *   `POST /api/rankings`: Registra nova pontuação com validação.
+    *   `GET /reload`: Stream (SSE) para hot-reload local (desativado em produção).
+    *   `GET /api/rankings/test`: Validação de conectividade com MongoDB.
     *   Database: `pacman`
     *   Collection: `ranking`
     *   Lógica de Upsert: Os usuários são identificados pelo nome (em CAIXA ALTA). Se o novo Score for maior que o existente, o registro é atualizado (`$max`).

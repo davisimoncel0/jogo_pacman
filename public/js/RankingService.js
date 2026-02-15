@@ -20,7 +20,7 @@ export class RankingService {
       });
       
       if (!response.ok) {
-        const errData = await response.json();
+        const errData = await response.json().catch(() => ({}));
         throw new Error(errData.error || 'Erro ao salvar no banco de dados');
       }
     } catch (err) {
@@ -36,7 +36,10 @@ export class RankingService {
   static async load() {
     try {
       const res = await fetch('/api/rankings');
-      if (!res.ok) throw new Error('Erro ao carregar rankings');
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || errData.status || 'Erro ao carregar rankings');
+      }
       const data = await res.json();
       return Array.isArray(data) ? data : [];
     } catch (err) {

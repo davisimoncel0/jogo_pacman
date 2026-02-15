@@ -127,13 +127,20 @@
     <script type="module" src="/public/js/main.js"></script>
     <script>
       // Simple Hot Reload Client
-      const evtSource = new EventSource('/reload');
-      evtSource.onmessage = function(event) {
-        if (event.data === 'reload') {
-          console.log('🔄 Reloading...');
-          window.location.reload();
-        }
-      };
+      // Desativa em produção (Netlify) para evitar erros de MIME type
+      if (!window.location.hostname.includes('netlify.app') && !window.location.hostname.includes('b4a.app')) {
+        const evtSource = new EventSource('/reload');
+        evtSource.onmessage = function(event) {
+          if (event.data === 'reload') {
+            console.log('🔄 Reloading...');
+            window.location.reload();
+          }
+        };
+        evtSource.onerror = function() {
+          // Silenciosamente fecha em caso de erro para não poluir o console em prod se falhar o check acima
+          evtSource.close();
+        };
+      }
     </script>
   </body>
 </html>
